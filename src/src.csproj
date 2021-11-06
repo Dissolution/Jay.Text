@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<!-- <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net5.0*</TargetFrameworks> -->
+	  <TargetFramework>net5.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Jay.Text</AssemblyName>
+    <RootNamespace>Jay.Text</RootNamespace>
+  </PropertyGroup>
+
+</Project>
