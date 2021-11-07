@@ -19,9 +19,7 @@ namespace Jay.Text
         void Write(bool value);
         void Write(char value);
         void Write(params char[] text);
-#if NET5_0
-        void Write(ReadOnlySpan<char> text);
-#endif
+        void Write(text text);
         void Write(string? text);
 
         void Write(byte value);
@@ -80,16 +78,12 @@ namespace Jay.Text
         where TSelf : ITextBuilder<TSelf>
     {
         new ref char this[int index] { get; }
-#if NET5_0
         Span<char> this[Range range] { get; }
-#endif
 
         TSelf Append(bool value);
         TSelf Append(char value);
         TSelf Append(params char[] text);
-#if NET5_0
-        TSelf Append(ReadOnlySpan<char> text);
-#endif
+        TSelf Append(text text);
         TSelf Append(string? text);
 
         TSelf Append(byte value);
@@ -109,11 +103,8 @@ namespace Jay.Text
         TSelf Append(DateTime value);
         TSelf Append(DateTimeOffset value);
         TSelf Append(Guid value);
-
-#if NET5_0
         TSelf Append(nint value);
         TSelf Append(nuint value);
-#endif
 
         TSelf Append(object? value);
         TSelf Append<T>(T? value);
@@ -134,17 +125,15 @@ namespace Jay.Text
         TSelf AppendFormat(DateTimeOffset value, string? format = null, IFormatProvider? provider = null);
         TSelf AppendFormat(Guid value, string? format = null, IFormatProvider? provider = null);
 
-#if NET5_0
         TSelf AppendFormat(nint value, string? format = null, IFormatProvider? provider = null);
         TSelf AppendFormat(nuint value, string? format = null, IFormatProvider? provider = null);
-#endif
 
         TSelf AppendFormat<T>(T? formattable, string? format = null, IFormatProvider? provider = null)
             where T : IFormattable;
 
         TSelf AppendFormat(FormattableString formatString);
-        TSelf AppendFormat(NonFormattableString format, params object?[] args);
-        TSelf AppendFormat<T>(NonFormattableString format, params T?[] args);
+        TSelf AppendFormat(RawString format, params object?[] args);
+        TSelf AppendFormat<T>(RawString format, params T?[] args);
         TSelf AppendFormat<T>(string format, IEnumerable<T?> args);
         TSelf AppendFormat<T1>(string format, T1? arg1);
         TSelf AppendFormat<T1, T2>(string format, T1? arg1, T2? arg2);
@@ -164,9 +153,7 @@ namespace Jay.Text
 
         new TSelf Insert(int index, char character);
         TSelf Insert(int index, string? text);
-#if NET5_0
-        TSelf Insert(int index, ReadOnlySpan<char> text);
-#endif
+        TSelf Insert(int index, text text);
 
         TSelf Trim();
 
@@ -174,25 +161,19 @@ namespace Jay.Text
         TSelf TrimStart(char trimChar);
         TSelf TrimStart(params char[] trimChars);
         TSelf TrimStart(string? trimString, StringComparison comparison = StringComparison.CurrentCulture);
-#if NET5_0
-        TSelf TrimStart(ReadOnlySpan<char> trimText, StringComparison comparison = StringComparison.CurrentCulture);
-#endif
+        TSelf TrimStart(text trimText, StringComparison comparison = StringComparison.CurrentCulture);
         TSelf TrimStart(Func<char, bool> isTrimChar);
 
         TSelf TrimEnd();
         TSelf TrimEnd(char trimChar);
         TSelf TrimEnd(params char[] trimChars);
         TSelf TrimEnd(string? trimString, StringComparison comparison = StringComparison.CurrentCulture);
-#if NET5_0
-        TSelf TrimEnd(ReadOnlySpan<char> trimText, StringComparison comparison = StringComparison.CurrentCulture);
-#endif
+        TSelf TrimEnd(text trimText, StringComparison comparison = StringComparison.CurrentCulture);
         TSelf TrimEnd(Func<char, bool> isTrimChar);
 
         TSelf Terminate(char character);
         TSelf Terminate(string? text, StringComparison comparison = StringComparison.CurrentCulture);
-#if NET5_0
-        TSelf Terminate(ReadOnlySpan<char> text, StringComparison comparison = StringComparison.CurrentCulture);
-#endif
+        TSelf Terminate(text text, StringComparison comparison = StringComparison.CurrentCulture);
 
         new TSelf Clear();
 
@@ -202,14 +183,10 @@ namespace Jay.Text
 
         TSelf Replace(char oldChar, char newChar);
         TSelf Replace(string oldText, string newText, StringComparison comparison = StringComparison.CurrentCulture);
-#if NET5_0
-        TSelf Replace(ReadOnlySpan<char> oldText, ReadOnlySpan<char> newText, StringComparison comparison = StringComparison.CurrentCulture);
-#endif
+        TSelf Replace(text oldText, text newText, StringComparison comparison = StringComparison.CurrentCulture);
     }
 
     
-
-#if NET5_0
     public static class TextExtensions
     {
         public static void Transform(Span<char> text, Func<char, char> charTransform)
@@ -227,26 +204,25 @@ namespace Jay.Text
             throw new NotImplementedException();
         }
     }
-#endif
 
-    public partial class TextBuilder : ITextBuilder<TextBuilder>
-    {
-        private static readonly ArrayPool<char> _charArrayPool;
-
-        static TextBuilder()
-        {
-            _charArrayPool = ArrayPool<char>.Create();
-        }
-        
-        public static string Build(WriteText<TextBuilder> buildText)
-        {
-            using (var builder = new TextBuilder())
-            {
-                buildText(builder);
-                return builder.ToString();
-            }
-        }
-    }
+    // public partial class TextBuilder : ITextBuilder<TextBuilder>
+    // {
+    //     private static readonly ArrayPool<char> _charArrayPool;
+    //
+    //     static TextBuilder()
+    //     {
+    //         _charArrayPool = ArrayPool<char>.Create();
+    //     }
+    //     
+    //     public static string Build(WriteText<TextBuilder> buildText)
+    //     {
+    //         using (var builder = new TextBuilder())
+    //         {
+    //             buildText(builder);
+    //             return builder.ToString();
+    //         }
+    //     }
+    // }
 
 //     public partial class TextBuilder : ITextBuilder<TextBuilder>
 //     {

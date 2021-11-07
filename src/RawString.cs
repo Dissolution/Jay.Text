@@ -19,23 +19,23 @@ namespace Jay.Text
     /// </para>
     /// <para>
     /// Whereas:
-    /// void Thing(NonFormattableString format, params object[] args)
+    /// void Thing(RawString format, params object[] args)
     /// void Thing(FormattableString fstr)
     /// In this case, passing in `$"Blah{1}"` would use the second overload
     /// </para>
     /// </remarks>
-    public readonly struct NonFormattableString : IEquatable<string>
+    public readonly struct RawString : IEquatable<string>
     {
-        public static implicit operator NonFormattableString(string? str) => new NonFormattableString(str);
-        public static explicit operator string(NonFormattableString nfStr) => nfStr.String;
+        public static implicit operator RawString(string? str) => new RawString(str);
+        public static explicit operator string(RawString nfStr) => nfStr.String;
         // This exists to ensure that the compiler does the right behavior
-        public static implicit operator NonFormattableString(FormattableString fStr) => throw new InvalidOperationException();
+        public static implicit operator RawString(FormattableString fStr) => throw new InvalidOperationException();
 
         private readonly string? _string;
 
         public string String => _string ?? string.Empty;
 
-        public NonFormattableString(string? str)
+        public RawString(string? str)
         {
             _string = str;
         }
@@ -45,7 +45,7 @@ namespace Jay.Text
             return string.Equals(_string, str);
         }
 
-        public bool Equals(NonFormattableString nfs)
+        public bool Equals(RawString nfs)
         {
             return string.Equals(_string, nfs._string);
         }
@@ -55,7 +55,7 @@ namespace Jay.Text
         {
             if (obj is string str)
                 return string.Equals(str, _string);
-            if (obj is NonFormattableString nfs)
+            if (obj is RawString nfs)
                 return string.Equals(nfs._string, _string);
             return false;
         }

@@ -1,9 +1,11 @@
-﻿using System;
+﻿global using text = System.ReadOnlySpan<char>;
+
+using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -11,52 +13,11 @@ using BenchmarkDotNet.Order;
 using InlineIL;
 using static InlineIL.IL;
 
+
+
 namespace Benchmarks
 {
     //https://benchmarkdotnet.org/articles/features/parameterization.html
-
-    public class EqualsBenchmarks
-    {
-        private string?[] _testStrings;
-
-        public IEnumerable<string?> TestStrings => _testStrings;
-
-        [ParamsSource(nameof(TestStrings))]
-        public string? A { get; set; }
-
-        [ParamsSource(nameof(TestStrings))]
-        public string? B { get; set; }
-
-        public EqualsBenchmarks()
-        {
-            _testStrings = new string?[]
-            {
-                null,
-                Environment.NewLine,
-                "Welcome To The End",
-                "{4F64381C-EE30-41ED-B0E5-433C2A770E5A}",
-                new string('x', 256),
-            };
-        }
-
-        [Benchmark]
-        public bool StringEquals()
-        {
-            return string.Equals(A, B);
-        }
-
-        [Benchmark]
-        public bool StringEqualsOperator()
-        {
-            return A == B;
-        }
-
-        [Benchmark]
-        public bool MESequenceEqual()
-        {
-            return MemoryExtensions.SequenceEqual<char>(A, B);
-        }
-    }
 
     public class AppendBenchmarks
     {

@@ -10,7 +10,7 @@ namespace Benchmarks
     {
         public static void Main(params string?[] args)
         {
-            var summary = BenchmarkRunner.Run<AppendBenchmarks>();
+            var summary = BenchmarkRunner.Run<EqualsBenchmarks>();
             //var logFileDirectory = Path.GetDirectoryName(summary.LogFilePath);
             //Process.Start(logFileDirectory).Dispose();
 
