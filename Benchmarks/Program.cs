@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Mime;
+using System.Runtime.InteropServices;
 using BenchmarkDotNet.Running;
+using Jay.Text;
 
 namespace Benchmarks
 {
@@ -10,9 +12,10 @@ namespace Benchmarks
     {
         public static void Main(params string?[] args)
         {
-            var summary = BenchmarkRunner.Run<EqualsBenchmarks>();
-            //var logFileDirectory = Path.GetDirectoryName(summary.LogFilePath);
-            //Process.Start(logFileDirectory).Dispose();
+            //var summary = BenchmarkRunner.Run<EqualsBenchmarks>();
+
+         
+            
 
             Console.WriteLine("Press Enter to close this window.");
             Console.ReadLine();

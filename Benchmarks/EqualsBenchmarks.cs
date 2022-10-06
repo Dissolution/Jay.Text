@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-using InlineIL;
+
+using static InlineIL.IL;
+// ReSharper disable EntityNameCapturedOnly.Local
 
 namespace Benchmarks;
 
@@ -22,17 +27,22 @@ public class EqualsBenchmarks
 
     public EqualsBenchmarks()
     {
+        // We want to test a variety of loads
         _testStrings = new string?[]
         {
-            //null,
-            Environment.NewLine,
-            //"Welcome To The End",
-            "{4F64381C-EE30-41ED-B0E5-433C2A770E5A}",
-            new string('x', 256),
+            // Null always needs to be accounted for
+            (string?)null,
+            // An empty string
+            "",
+            // A decently sized semi-random string
+            Guid.NewGuid().ToString("N"),
+            // Two long strings that barely differ
+            $"{new string('X', 255)}Y",
+            new string('X', 256),
         };
     }
 
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public bool StringEquals()
     {
         return string.Equals(A, B);
@@ -43,29 +53,56 @@ public class EqualsBenchmarks
     {
         return A == B;
     }
+    
+    [Benchmark]
+    public bool InstanceEquals()
+    {
+        if (A is null) return B is null;
+        return A.Equals(B);
+    }
 
     [Benchmark]
-    public bool MESequenceEqual()
+    public bool InstanceSequenceEqual()
+    {
+        if (A is null) return B is null;
+        if (B is null) return false;
+        return A.SequenceEqual(B);
+    }
+    
+    [Benchmark]
+    public bool MemoryExtensionsSequenceEqual()
     {
         return MemoryExtensions.SequenceEqual<char>(A, B);
+    }
+    
+    [Benchmark]
+    public bool MemoryExtensionsEqualsOrdinal()
+    {
+        return MemoryExtensions.Equals(A, B, StringComparison.Ordinal);
     }
 
     [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
     private unsafe static extern int memcmp(byte* b1, byte* b2, nuint count);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void* AsVoidPointer<T>(ReadOnlySpan<T> span)
+    private unsafe static byte* AsBytePointer(ReadOnlySpan<char> text)
     {
-        IL.Emit.Ldarg(nameof(span));
-        return IL.ReturnPointer();
+        Emit.Ldarg(nameof(text));
+        return ReturnPointer<byte>();
     }
 
     [Benchmark]
     public unsafe bool MemCmp()
     {
-        text a = A;
-        text b = B;
+        ReadOnlySpan<char> a = A;
+        ReadOnlySpan<char> b = B;
         if (a.Length != b.Length) return false;
-        return memcmp((byte*)AsVoidPointer(a), (byte*)AsVoidPointer(b), (nuint)a.Length * 2) == 0;
+        return memcmp(AsBytePointer(a), AsBytePointer(b), (nuint)(a.Length * 2)) == 0;
+    }
+
+    [Benchmark]
+    public bool StructurallyEquals()
+    {
+        return StructuralComparisons.StructuralEqualityComparer.Equals(A, B);
     }
 }

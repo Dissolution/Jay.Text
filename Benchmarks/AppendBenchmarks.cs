@@ -1,6 +1,4 @@
-﻿global using text = System.ReadOnlySpan<char>;
-
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
