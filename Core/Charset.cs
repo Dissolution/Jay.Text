@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+﻿/*
 using System.Numerics;
 
 namespace Jay.Text;
@@ -39,7 +39,7 @@ internal static class BitExtensions
 /// <see cref="https://stackoverflow.com/questions/5094350/when-should-i-use-a-bitvector32"/>
 public ref struct Charset
 {
-    private const int ChunkCount = (char.MaxValue + 1) / 64;
+    private const int MaxChunkCount = (char.MaxValue + 1) / 64;
     private const int BitCount = sizeof(ulong) * 8;
 
     static Charset()
@@ -57,7 +57,7 @@ public ref struct Charset
         return (ch / 64, ch % 64);
     }
 
-    private readonly ulong[] _chunks;
+    private ulong[] _chunks;
 
     public bool this[char ch]
     {
@@ -84,8 +84,9 @@ public ref struct Charset
 
     public Charset()
     {
-        _chunks = new ulong[ChunkCount];
-        _chunks.Initialize();
+        // In random text file testing, 95%+ of all text falls in ascii range (0-127)
+        // which is capable of being stored in 2 ulongs
+        _chunks = new ulong[2] { 0UL, 0UL };
     }
 
     public void Add(char ch)
@@ -150,7 +151,7 @@ namespace Jay.Text
          * ASCII range: 0-127
          *
          * So, 256 seems to be a pretty good block size.
-         #1#
+         #2#
         private const int BLOCK_SIZE = 256;
 
         /// <summary>
@@ -1122,4 +1123,5 @@ namespace Jay.Text
         }
     }
 }
+#1#
 */

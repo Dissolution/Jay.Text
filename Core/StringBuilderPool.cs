@@ -1,33 +1,51 @@
-﻿/*using System.Text;
-using Jay.Collections.Pools;
+﻿using System.Collections.Concurrent;
+using System.Text;
 
 namespace Jay.Text;
 
 public static class StringBuilderPool
 {
-    private static readonly ObjectPool<StringBuilder> _pool;
+    private static readonly ConcurrentStack<StringBuilder> _stringBuilders;
 
     static StringBuilderPool()
     {
-        _pool = new ObjectPool<StringBuilder>(() => new StringBuilder(1024),
-            sb => sb.Clear());
+        _stringBuilders = new ConcurrentStack<StringBuilder>();
+    }
+
+    public static StringBuilder Rent()
+    {
+        if (_stringBuilders.TryPop(out var stringBuilder))
+        {
+            return stringBuilder;
+        }
+        return new StringBuilder(1024);
+    }
+
+    public static void Return(StringBuilder stringBuilder)
+    {
+        stringBuilder.Clear();
+        _stringBuilders.Push(stringBuilder);
+    }
+
+    public static string ReturnGetString(StringBuilder stringBuilder)
+    {
+        string str = stringBuilder.ToString();
+        stringBuilder.Clear();
+        _stringBuilders.Push(stringBuilder);
+        return str;
     }
 
     public static string Build(Action<StringBuilder> buildText)
     {
-        var sb = _pool.Rent();
+        var sb = Rent();
         buildText(sb);
-        string str = sb.ToString();
-        _pool.Return(sb);
-        return str;
+        return ReturnGetString(sb);
     }
-        
+
     public static string Build<TState>(TState state, Action<StringBuilder, TState> buildText)
     {
-        var sb = _pool.Rent();
+        var sb = Rent();
         buildText(sb, state);
-        string str = sb.ToString();
-        _pool.Return(sb);
-        return str;
+        return ReturnGetString(sb);
     }
-}*/
+}

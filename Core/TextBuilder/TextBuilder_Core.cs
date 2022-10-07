@@ -41,14 +41,7 @@ public partial class TextBuilder :
             return ref _charArray[index];
         }
     }
-    /// <inheritdoc cref="IList{T}"/>
-    char IList<char>.this[int index]
-    {
-        get => this[index];
-        set => this[index] = value;
-    }
-    /// <inheritdoc cref="IReadOnlyList{T}"/>
-    char IReadOnlyList<char>.this[int index] => this[index];
+  
 
     /// <summary>
     /// Gets a <c>Span&lt;</c><see cref="char"/><c>&gt;</c> for the given <paramref name="range"/>
@@ -94,13 +87,7 @@ public partial class TextBuilder :
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _length;
     }
-    /// <inheritdoc cref="ICollection{T}"/>
-    int ICollection<char>.Count => _length;
-    /// <inheritdoc cref="IReadOnlyCollection{T}"/>
-    int IReadOnlyCollection<char>.Count => _length;
-
-    /// <inheritdoc cref="ICollection{T}"/>
-    bool ICollection<char>.IsReadOnly => false;
+   
 
     /// <summary>
     /// Construct a new <see cref="TextBuilder"/>
@@ -266,8 +253,7 @@ public partial class TextBuilder :
             GrowThenWrite(ch);
         }
     }
-    /// <inheritdoc cref="ICollection{T}"/>
-    void ICollection<char>.Add(char ch) => Write(ch);
+
 
     /// <summary>
     /// Writes a <c>ReadOnlySpan&lt;char&gt;</c> to this <see cref="TextBuilder"/>
@@ -668,8 +654,7 @@ public partial class TextBuilder :
         AllocateAt(index, 1)[0] = ch;
         return this;
     }
-    /// <inheritdoc cref="IList{T}"/>
-    void IList<char>.Insert(int index, char ch) => this.Insert(index, ch);
+
 
     public TextBuilder Insert(int index, ReadOnlySpan<char> text)
     {
@@ -701,193 +686,6 @@ public partial class TextBuilder :
     }
 #endregion
 
-    #region Replace
-    /// <summary>
-    /// Replace all occurrences of <paramref name="oldChar"/> with <paramref name="newChar"/> in this <see cref="TextBuilder"/>
-    /// </summary>
-    public TextBuilder Replace(char oldChar, char newChar)
-    {
-        var writ = Written;
-        ref char ch = ref Unsafe.NullRef<char>();
-        for (var i = writ.Length - 1; i >= 0; i--)
-        {
-            ch = ref writ[i];
-            if (ch == oldChar)
-            {
-                ch = newChar;
-            }
-        }
-        return this;
-    }
-
-    public TextBuilder Replace(ReadOnlySpan<char> oldText, ReadOnlySpan<char> newText)
-    {
-        int oldTextLen = oldText.Length;
-        if (oldTextLen == 0 || oldTextLen > Length) return this;
-        int newTextLen = newText.Length;
-
-        // Stores the area of written text we're scanning for replacements
-        Span<char> scan = Written;
-        int i;
-
-        // What we do depends on the differences between the text sizes
-        int gap = oldTextLen - newTextLen;
-
-        // Same text size
-        if (gap == 0)
-        {
-            ref readonly char newChar = ref newText.GetPinnableReference();
-            // Scan until we find no further matches
-            while ((i = MemoryExtensions.IndexOf(scan, oldText)) >= 0)
-            {
-                // Copy new onto old
-                TextHelper.Unsafe.Copy(in newChar, ref scan[i], newTextLen);
-                // Start our scan after this replacement
-                scan = scan.Slice(i + oldTextLen);
-            }
-        }
-        // NewText is smaller (shrinks length)
-        else if (gap > 0)
-        {
-            ref readonly char newChar = ref newText.GetPinnableReference();
-            // Scan until we find no further matches
-            while ((i = MemoryExtensions.IndexOf(scan, oldText)) >= 0)
-            {
-                // Copy new onto old
-                TextHelper.Unsafe.Copy(in newChar, ref scan[i], newTextLen);
-
-                // Slide everything to the right over the gap
-                TextHelper.Unsafe.Copy(scan.Slice(i + oldTextLen), scan.Slice(i + newTextLen));
-                // Length is smaller
-                _length -= gap;
-
-                // Start our scan after this replacement
-                scan = scan.Slice(i + newTextLen);
-            }
-        }
-        // NewText is bigger (increases length)
-        else // gap < 0
-        {
-            using (var tempBuilder = new TextBuilder(Length * 2))
-            {
-                // Scan until we find no further matches
-                while ((i = MemoryExtensions.IndexOf(scan, oldText)) >= 0)
-                {
-                    // Do we have to write anything before this?
-                    if (i > 0)
-                    {
-                        // Write before
-                        tempBuilder.Write(scan[..i]);
-                    }
-                    // Write replacement
-                    tempBuilder.Write(newText);
-                    //_length -= gap; // gap is negative, length grows
-
-                    // Update scan to right after oldText
-                    scan = scan.Slice(i + oldTextLen);
-                }
-
-                // Did we have anything left to write?
-                if (scan.Length > 0)
-                {
-                    tempBuilder.Write(scan);
-                }
-
-                // Swap our arrays + lengths! HACKHACKHACK
-                (_charArray, tempBuilder._charArray) = (tempBuilder._charArray, _charArray);
-                (_length, tempBuilder._length) = (tempBuilder._length, _length);
-            } // Dispose the temp builder
-            // Now we have the correct text
-        }
-
-        // Fluent
-        return this;
-    }
-
-    public TextBuilder Replace(ReadOnlySpan<char> oldText, ReadOnlySpan<char> newText, StringComparison comparison)
-    {
-        int oldTextLen = oldText.Length;
-        if (oldTextLen == 0 || oldTextLen > Length) return this;
-        int newTextLen = newText.Length;
-
-        // Stores the area of written text we're scanning for replacements
-        Span<char> scan = Written;
-        int i;
-
-        // What we do depends on the differences between the text sizes
-        int gap = oldTextLen - newTextLen;
-
-        // Same text size
-        if (gap == 0)
-        {
-            ref readonly char newChar = ref newText.GetPinnableReference();
-            // Scan until we find no further matches
-            while ((i = MemoryExtensions.IndexOf(scan, oldText, comparison)) >= 0)
-            {
-                // Copy new onto old
-                TextHelper.Unsafe.Copy(in newChar, ref scan[i], newTextLen);
-                // Start our scan after this replacement
-                scan = scan.Slice(i + oldTextLen);
-            }
-        }
-        // NewText is smaller (shrinks length)
-        else if (gap > 0)
-        {
-            ref readonly char newChar = ref newText.GetPinnableReference();
-            // Scan until we find no further matches
-            while ((i = MemoryExtensions.IndexOf(scan, oldText, comparison)) >= 0)
-            {
-                // Copy new onto old
-                TextHelper.Unsafe.Copy(in newChar, ref scan[i], newTextLen);
-
-                // Slide everything to the right over the gap
-                TextHelper.Unsafe.Copy(scan.Slice(i + oldTextLen), scan.Slice(i + newTextLen));
-                // Length is smaller
-                _length -= gap;
-
-                // Start our scan after this replacement
-                scan = scan.Slice(i + newTextLen);
-            }
-        }
-        // NewText is bigger (increases length)
-        else // gap < 0
-        {
-            using (var tempBuilder = new TextBuilder(Length * 2))
-            {
-                // Scan until we find no further matches
-                while ((i = MemoryExtensions.IndexOf(scan, oldText, comparison)) >= 0)
-                {
-                    // Do we have to write anything before this?
-                    if (i > 0)
-                    {
-                        // Write before
-                        tempBuilder.Write(scan[..i]);
-                    }
-                    // Write replacement
-                    tempBuilder.Write(newText);
-                    //_length -= gap; // gap is negative, length grows
-
-                    // Update scan to right after oldText
-                    scan = scan.Slice(i + oldTextLen);
-                }
-
-                // Did we have anything left to write?
-                if (scan.Length > 0)
-                {
-                    tempBuilder.Write(scan);
-                }
-
-                // Swap our arrays + lengths! HACKHACKHACK
-                (_charArray, tempBuilder._charArray) = (tempBuilder._charArray, _charArray);
-                (_length, tempBuilder._length) = (tempBuilder._length, _length);
-            } // Dispose the temp builder
-            // Now we have the correct text
-        }
-
-        // Fluent
-        return this;
-    }
-    #endregion
 
     #region Remove
     /// <summary>
@@ -940,7 +738,6 @@ public partial class TextBuilder :
         }
         return -1;
     }
-    bool ICollection<char>.Remove(char ch) => RemoveFirst(ch) >= 0;
 
     public int RemoveLast(char ch)
     {
@@ -1002,10 +799,6 @@ public partial class TextBuilder :
         _length = 0;
         return this;
     }
-    /// <inheritdoc cref="ICollection{T}"/>
-    void ICollection<char>.Clear() => this.Clear();
-
-    // ToStringAndClear lives in ToString (below)
     #endregion
 
 #region Search
@@ -1022,8 +815,6 @@ public partial class TextBuilder :
         }
         return -1;
     }
-    /// <inheritdoc cref="IList{T}"/>
-    int IList<char>.IndexOf(char ch) => FirstIndexOf(ch);
 
     public int LastIndexOf(char ch)
     {
@@ -1105,63 +896,8 @@ public partial class TextBuilder :
         return TextHelper.TryCopyTo(Written, destination);
     }
 #endregion
-
-    #region Slice
-    #endregion
-
-    #region Enumeration
-    /// <summary>
-    /// An efficient <c>ref struct</c> <see cref="IEnumerator"/>&lt;<see cref="char"/>&gt; over a <c>Span&lt;</c><see cref="char"/><c>&gt;</c>
-    /// </summary>
-    public ref struct CharSpanEnumerator
-    {
-        /// <summary>
-        /// The span being enumerated over
-        /// </summary>
-        private readonly Span<char> _span;
-        /// <summary>
-        /// The current index that _current points at
-        /// </summary>
-        private int _index;
-
-        /// <summary>Gets the element at the current position of the enumerator.</summary>
-        public ref char Current
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                if ((uint)_index >= _span.Length)
-                    return ref Unsafe.NullRef<char>();
-                return ref _span[_index];
-            }
-        }
-
-        public int Index
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _index;
-        }
-
-        /// <summary>
-        /// Initialize the enumerator
-        /// </summary>
-        /// <param name="span">The span to enumerate.</param>
-        internal CharSpanEnumerator(Span<char> span)
-        {
-            _span = span;
-            _index = -1;
-        }
-
-        /// <summary>Advances the enumerator to the next element of the span.</summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool MoveNext()
-        {
-            int index = _index + 1;
-            _index = index;
-            return index < _span.Length;
-        }
-    }
-
+    
+#region IEnumerable
     public CharSpanEnumerator GetEnumerator()
     {
         return new CharSpanEnumerator(Written);
@@ -1182,7 +918,7 @@ public partial class TextBuilder :
             yield return Written[i];
         }
     }
-#endregion
+    #endregion
 
     #region Dispose
     public void Dispose()
@@ -1226,13 +962,6 @@ public partial class TextBuilder :
     #endregion
 
     #region ToString
-    public string ToStringAndClear()
-    {
-        var str = new string(_charArray, 0, _length);
-        _length = 0;
-        return str;
-    }
-
     public string ToString(int start, int length)
     {
         Validate.Range(_length, start, length);

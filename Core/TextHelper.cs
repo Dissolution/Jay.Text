@@ -27,7 +27,7 @@ public static class TextHelper
     /// <summary>
     /// Unsafe methods that operate on text with no validation
     /// </summary>
-    public static unsafe class Unsafe
+    public unsafe static class Unsafe
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Copy(char* sourcePtr, char* destPtr, int charCount)
@@ -372,4 +372,21 @@ public static class TextHelper
         }
         return new string(buffer[..b]);
     }
+    
+    // #region Split
+    // public static IEnumerable<string> Split(ReadOnlySpan<char> text, char delimiter)
+    // {
+    //     int start = 0;
+    //     for (var i = 0; i < text.Length; i++)
+    //     {
+    //         if (text[i] == delimiter)
+    //         {
+    //             yield return new string(text[start..i]);
+    //             start = i + 1;
+    //         }
+    //     }
+    //     // Remaining
+    //     yield return new string(text[start..]);
+    // }
+    // #endregion
 }
