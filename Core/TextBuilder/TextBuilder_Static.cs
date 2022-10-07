@@ -7,8 +7,16 @@ public partial class TextBuilder
     /// </summary>
     internal const int MinimumCapacity = 1024;
 
+    /// <summary>
+    /// A locally stored copy of <see cref="Environment.NewLine"/>
+    /// </summary>
     internal static readonly string NewLineString = Environment.NewLine;
     
+    /// <summary>
+    /// Builds a <see cref="string"/> using a temporary <see cref="TextBuilder"/> instance
+    /// </summary>
+    /// <param name="buildText">The action to perform on a <see cref="TextBuilder"/> instance.</param>
+    /// <returns>The <see cref="string"/> built by the <see cref="TextBuilder"/> instance.</returns>
     public static string Build(Action<TextBuilder> buildText)
     {
         using (var builder = new TextBuilder())
@@ -18,7 +26,13 @@ public partial class TextBuilder
         }
     }
 
-    public static string Build<TState>(TState? state, Action<TextBuilder, TState?> buildText)
+    /// <summary>
+    /// Builds a <see cref="string"/> using a temporary <see cref="TextBuilder"/> instance
+    /// </summary>
+    /// <typeparam name="TState">The <see cref="Type"/> of the <paramref name="state"/> parameter.</list></typeparam>
+    /// <param name="buildText">The action to perform on a <see cref="TextBuilder"/> instance and a <typeparamref name="TState"/> instance.</param>
+    /// <returns>The <see cref="string"/> built by the <see cref="TextBuilder"/> instance.</returns>
+    public static string Build<TState>(TState state, Action<TextBuilder, TState> buildText)
     {
         using (var builder = new TextBuilder())
         {
