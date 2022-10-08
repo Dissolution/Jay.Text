@@ -1,11 +1,11 @@
 ﻿namespace Jay.Text;
 
-public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
+public ref struct CharSpanReader // : IEnumerator<char>, IEnumerator
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator TextEnumerator(ReadOnlySpan<char> text) => new TextEnumerator(text);
+    public static implicit operator CharSpanReader(ReadOnlySpan<char> text) => new CharSpanReader(text);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator TextEnumerator(string? text) => new TextEnumerator((ReadOnlySpan<char>)text);
+    public static implicit operator CharSpanReader(string? text) => new CharSpanReader((ReadOnlySpan<char>)text);
     private ReadOnlySpan<char> _textSpan;
     
     public int Length
@@ -29,17 +29,6 @@ public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
             return ref _textSpan[index];
         }
     }
-
-    /// <inheritdoc cref="IEnumerator{T}"/>
-    public char Current
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (Length == 0) return default;
-            return _textSpan[0];
-        }
-    }
     
     public ReadOnlySpan<char> Text
     {
@@ -47,22 +36,11 @@ public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
         get => _textSpan;
     }
 
-    public TextEnumerator(ReadOnlySpan<char> text)
+    public CharSpanReader(ReadOnlySpan<char> text)
     {
         _textSpan = text;
     }
-    
-    /// <inheritdoc cref="IEnumerator{T}"/>
-    public bool MoveNext()
-    {
-        if (_textSpan.Length > 0)
-        {
-            _textSpan = _textSpan.Slice(1);
-            return true;
-        }
-        return false;
-    }
-
+  
     public void Skip(int count)
     {
         if (count >= Length)
@@ -106,9 +84,9 @@ public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
    
     public void SkipLetters() => SkipWhile(char.IsLetter);
     
-    public TextEnumerator Take(int count)
+    public CharSpanReader Take(int count)
     {
-        TextEnumerator taken;
+        CharSpanReader taken;
         if (count >= Length)
         {
             taken = _textSpan;
@@ -126,9 +104,8 @@ public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
         return taken;
     }
     
-    public TextEnumerator TakeWhile(Func<char, bool> predicate)
+    public CharSpanReader TakeWhile(Func<char, bool> predicate)
     {
-        TextEnumerator taken;
         var text = _textSpan;
         int i = 0;
         int len = Length;
@@ -136,14 +113,13 @@ public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
         {
             i++;
         }
-        taken = _textSpan[..i];
+        CharSpanReader taken = _textSpan[..i];
         _textSpan = _textSpan[i..];
         return taken;
     }
     
-    public TextEnumerator TakeUntil(Func<char, bool> predicate)
+    public CharSpanReader TakeUntil(Func<char, bool> predicate)
     {
-        TextEnumerator taken;
         var text = _textSpan;
         int i = 0;
         int len = Length;
@@ -151,19 +127,17 @@ public ref struct TextEnumerator // : IEnumerator<char>, IEnumerator
         {
             i++;
         }
-        taken = _textSpan[..i];
+        CharSpanReader taken = _textSpan[..i];
         _textSpan = _textSpan[i..];
         return taken;
     }
 
-    public TextEnumerator TakeWhiteSpace() => TakeWhile(char.IsWhiteSpace);
+    public CharSpanReader TakeWhiteSpace() => TakeWhile(char.IsWhiteSpace);
 
-    public TextEnumerator TakeDigits() => TakeWhile(char.IsDigit);
+    public CharSpanReader TakeDigits() => TakeWhile(char.IsDigit);
    
-    public TextEnumerator TakeLetters() => TakeWhile(char.IsLetter);
+    public CharSpanReader TakeLetters() => TakeWhile(char.IsLetter);
 
-    public TextEnumerator GetEnumerator() => this;
-    
     public bool Equals(ReadOnlySpan<char> text)
     {
         return text.SequenceEqual(_textSpan);

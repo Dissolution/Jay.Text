@@ -27,7 +27,7 @@ public static class StringBuilderPool
         _stringBuilders.Push(stringBuilder);
     }
 
-    public static string ReturnGetString(StringBuilder stringBuilder)
+    public static string ReturnToString(StringBuilder stringBuilder)
     {
         string str = stringBuilder.ToString();
         stringBuilder.Clear();
@@ -35,17 +35,17 @@ public static class StringBuilderPool
         return str;
     }
 
-    public static string Build(Action<StringBuilder> buildText)
+    public static string BuildString(Action<StringBuilder> buildText)
     {
         var sb = Rent();
         buildText(sb);
-        return ReturnGetString(sb);
+        return ReturnToString(sb);
     }
 
-    public static string Build<TState>(TState state, Action<StringBuilder, TState> buildText)
+    public static string BuildString<TState>(TState state, Action<StringBuilder, TState> buildText)
     {
         var sb = Rent();
         buildText(sb, state);
-        return ReturnGetString(sb);
+        return ReturnToString(sb);
     }
 }

@@ -475,10 +475,11 @@ public partial class TextBuilder
     {
         ReadOnlySpan<char> newLine = NewLineString;
         int newLineLen = newLine.Length;
-        var buffer = Allocate(count * newLineLen);
+        EnsureCanAdd(count * newLineLen);
+        var buffer = Available;
         for (var i = 0; i < count; i++)
         {
-            TextHelper.Unsafe.Copy(newLine, buffer.Slice(i*newLineLen));
+            TextHelper.Unsafe.Copy(newLine, buffer.Slice(i * newLineLen, newLineLen));
         }
         return this;
     }

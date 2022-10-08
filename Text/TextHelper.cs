@@ -25,9 +25,9 @@ public static class TextHelper
     public const string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
 
     /// <summary>
-    /// Unsafe methods that operate on text with no validation
+    /// Unsafe text-related methods that perform no index/range/bounds checking
     /// </summary>
-    public unsafe static class Unsafe
+    public static unsafe class Unsafe
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Copy(char* sourcePtr, char* destPtr, int charCount)
@@ -100,7 +100,6 @@ public static class TextHelper
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCopyTo(ReadOnlySpan<char> source, Span<char> dest)
     {
         if (dest.Length < source.Length) return false;
@@ -110,7 +109,6 @@ public static class TextHelper
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCopyTo(ReadOnlySpan<char> source, char[]? dest)
     {
         if (dest is null) return source.Length == 0;
@@ -121,7 +119,6 @@ public static class TextHelper
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCopyTo(char[]? source, Span<char> dest)
     {
         if (source is null || source.Length == 0) return true;
@@ -132,7 +129,6 @@ public static class TextHelper
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCopyTo(char[]? source, char[]? dest)
     {
         if (source is null || source.Length == 0) return true;
@@ -144,7 +140,6 @@ public static class TextHelper
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCopyTo(string? source, Span<char> dest)
     {
         if (string.IsNullOrEmpty(source)) return true;
@@ -155,7 +150,6 @@ public static class TextHelper
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCopyTo(string? source, char[]? dest)
     {
         if (string.IsNullOrEmpty(source)) return true;
@@ -169,129 +163,129 @@ public static class TextHelper
     
     #region Equals
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    public static bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> x, char[]? y)
+    public static bool Equals(ReadOnlySpan<char> left, char[]? right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> x, string? y)
+    public static bool Equals(ReadOnlySpan<char> left, string? right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? x, ReadOnlySpan<char> y)
+    public static bool Equals(char[]? left, ReadOnlySpan<char> right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? x, char[]? y)
+    public static bool Equals(char[]? left, char[]? right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? x, string? y)
+    public static bool Equals(char[]? left, string? right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? x, ReadOnlySpan<char> y)
+    public static bool Equals(string? left, ReadOnlySpan<char> right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? x, char[]? y)
+    public static bool Equals(string? left, char[]? right)
     {
-        return MemoryExtensions.SequenceEqual<char>(x, y);
+        return MemoryExtensions.SequenceEqual<char>(left, right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? x, string? y)
+    public static bool Equals(string? left, string? right)
     {
-        return string.Equals(x, y);
+        return string.Equals(left, right);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y, StringComparison comparison)
+    public static bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> x, char[]? y, StringComparison comparison)
+    public static bool Equals(ReadOnlySpan<char> left, char[]? right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> x, string? y, StringComparison comparison)
+    public static bool Equals(ReadOnlySpan<char> left, string? right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? x, ReadOnlySpan<char> y, StringComparison comparison)
+    public static bool Equals(char[]? left, ReadOnlySpan<char> right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? x, char[]? y, StringComparison comparison)
+    public static bool Equals(char[]? left, char[]? right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? x, string? y, StringComparison comparison)
+    public static bool Equals(char[]? left, string? right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? x, ReadOnlySpan<char> y, StringComparison comparison)
+    public static bool Equals(string? left, ReadOnlySpan<char> right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? x, char[]? y, StringComparison comparison)
+    public static bool Equals(string? left, char[]? right, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(x, y, comparison);
+        return MemoryExtensions.Equals(left, right, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? x, string? y, StringComparison comparison)
+    public static bool Equals(string? left, string? right, StringComparison comparison)
     {
-        return string.Equals(x, y, comparison);
+        return string.Equals(left, right, comparison);
     }
     #endregion
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiDigit(char c) => c is <= '9' and >= '0';
+    public static bool IsAsciiDigit(char ch) => ch is <= '9' and >= '0';
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiLower(char c) => c is <= 'z' and >= 'a';
+    public static bool IsAsciiLower(char ch) => ch is <= 'z' and >= 'a';
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiUpper(char c) => c is <= 'Z' and >= 'A';
+    public static bool IsAsciiUpper(char ch) => ch is <= 'Z' and >= 'A';
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAscii(char c) => c <= 127;
+    public static bool IsAscii(char ch) => ch <= 127;
     
     /// <summary>
-    /// Transforms the specified characters into UppercaseLetters, using char.ToUpper(c)
+    /// Transforms the specified characters into UppercaseLetters, using char.ToUpper(ch)
     /// </summary>
     /// <param name="text"></param>
     /// <returns></returns>
@@ -306,7 +300,7 @@ public static class TextHelper
     }
 
     /// <summary>
-    /// Transforms the specified characters into UppercaseLetters, using char.ToLower(c)
+    /// Transforms the specified characters into UppercaseLetters, using char.ToLower(ch)
     /// </summary>
     /// <param name="text"></param>
     /// <returns></returns>
@@ -356,21 +350,21 @@ public static class TextHelper
     public static string Refine(ReadOnlySpan<char> text)
     {
         Span<char> buffer = stackalloc char[text.Length];
-        int b = 0;
+        int written = 0;
         char ch;
         for (var i = 0; i < text.Length; i++)
         {
             ch = text[i];
             if (ch is >= '0' and <= '9' || ch is >= 'A' and <= 'Z')
             {
-                buffer[b++] = ch;
+                buffer[written++] = ch;
             }
             else if (ch is >= 'a' and <= 'z')
             {
-                buffer[b++] = (char)(ch - UppercaseOffset);
+                buffer[written++] = (char)(ch - UppercaseOffset);
             }
         }
-        return new string(buffer[..b]);
+        return new string(buffer[..written]);
     }
     
     // #region Split

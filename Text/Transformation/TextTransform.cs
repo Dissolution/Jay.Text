@@ -40,7 +40,8 @@ public class TextTransformer
             }
             case TextTransform.TitleCase:
             {
-                return this.CultureInfo.TextInfo.ToTitleCase()
+                //return this.CultureInfo.TextInfo.ToTitleCase();
+                break;
             }
             case TextTransform.CamelCase:
                 break;
@@ -53,6 +54,7 @@ public class TextTransformer
             default:
                 throw new ArgumentOutOfRangeException(nameof(transform), transform, null);
         }
+        throw new NotImplementedException();
     }
 
     public string Transform(string? text, TextTransform transform)
@@ -83,7 +85,7 @@ public class TextTransformer
             case TextTransform.SnakeCase:
             {
                 using var textBuilder = TextBuilder.Borrow();
-                TextEnumerator e = text;
+                CharSpanReader e = text;
                 e.SkipWhiteSpace();
                 e.TakeWhile(ch => !new char[] { ' ', '_' }.Contains(ch) && !char.IsUpper(ch));
                 break;
@@ -95,5 +97,6 @@ public class TextTransformer
             default:
                 throw new ArgumentOutOfRangeException(nameof(transform), transform, null);
         }
+        throw new NotImplementedException();
     }
 }
