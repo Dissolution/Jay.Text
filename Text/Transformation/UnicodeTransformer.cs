@@ -1,6 +1,4 @@
-﻿using Jay.Text.Extensions;
-
-namespace Jay.Text.Transformation;
+﻿namespace Jay.Text.Transformation;
 
 /// <summary>
 /// Utility for transforming <see cref="string"/>s via unicode substitution.
@@ -53,10 +51,9 @@ public static class UnicodeTransformer
         int lowerCaseAOffset,
         int zeroOffset)
     {
-        ref char ch = ref Unsafe.NullRef<char>();
         for (var i = text.Length - 1; i >= 0; i--)
         {
-            ch = ref text[i];
+            ref char ch = ref text[i];
             if (ch is >= 'A' and <= 'Z')
             {
                 ch = (char)((ch - 'A') + uppercaseAOffset);
@@ -75,7 +72,7 @@ public static class UnicodeTransformer
     private static void Transform(TextBuilder builder, ReadOnlySpan<char> text, int uppercaseAOffset, int lowercaseAOffset, int zeroOffset)
     {
         var span = builder.Allocate(text.Length);
-        TextHelper.Unsafe.Copy(text, span);
+        TextHelper.Unsafe.CopyTo(text, span);
         CommonAsciiTransform(span, uppercaseAOffset, lowercaseAOffset, zeroOffset);
     }
 
@@ -251,8 +248,7 @@ public static class UnicodeTransformer
     public static string TransformUnicodeFullWidth(string str)
     {
         //Kick back original string if we can't do anything with it
-        if (str.IsNullOrEmpty())
-            return str;
+        if (string.IsNullOrEmpty(str)) return str;
         //Process
         using var text = TextBuilder.Borrow();
         foreach (var c in str)

@@ -1,24 +1,25 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
-using System.Net.Mime;
-using System.Runtime.InteropServices;
+using System.Reflection;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Environments;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using Jay.Text;
 
-namespace Benchmarks
+var config = DefaultConfig.Instance
+    .AddJob(Job.Default.WithRuntime(CoreRuntime.Core60))
+    .AddJob(Job.Default.WithRuntime(ClrRuntime.Net48));
+
+var summaries = BenchmarkSwitcher
+    .FromAssembly(Assembly.GetExecutingAssembly())
+    .Run(args, config);
+
+foreach (var summary in summaries)
 {
-    public static class Program
+    string path = Path.Combine(summary.ResultsDirectoryPath);
+    Process.Start(new ProcessStartInfo
     {
-        public static void Main(params string?[] args)
-        {
-            //var summary = BenchmarkRunner.Run<EqualsBenchmarks>();
-
-         
-            
-
-            Console.WriteLine("Press Enter to close this window.");
-            Console.ReadLine();
-        }
-    }
+        FileName = path,
+        UseShellExecute = true,
+    });
 }

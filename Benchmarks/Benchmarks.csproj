@@ -2,10 +2,15 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <StartupObject>Benchmarks.Program</StartupObject>
+    <TargetFrameworks>net7.0</TargetFrameworks>
+    <StartupObject></StartupObject>
     <Nullable>enable</Nullable>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>11</LangVersion>
+    <AssemblyName>Jay.Text.Benchmarks</AssemblyName>
+    <RootNamespace>Jay.Text.Benchmarks</RootNamespace>
+    <ApplicationIcon>..\BlueJay.ico</ApplicationIcon>
+    <Company>T.R.Jay</Company>
+    <Product>Jay.Text.Benchmarks</Product>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,11 +23,10 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
-    <PackageReference Include="Fody" Version="6.6.4">
-      <PrivateAssets>all</PrivateAssets>
+    <PackageReference Include="Fody" Version="6.6.4" PrivateAssets="all">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="InlineIL.Fody" Version="1.7.2" />
+    <PackageReference Include="InlineIL.Fody" Version="1.7.2" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

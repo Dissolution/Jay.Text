@@ -1,62 +1,61 @@
-﻿using Jay.Text.Extensions;
+﻿#if NET6_0_OR_GREATER
+using System.Collections;
+using Jay.Text.Extensions;
 
 namespace Jay.Text.Comparision;
 
-public interface ITextEqualityComparer : IEqualityComparer<char>,
-                                         IEqualityComparer<char[]>,
-                                         //IEqualityComparer<ReadOnlySpan<char>>,
-                                         IEqualityComparer<string?>,
-                                         IEqualityComparer
+public interface ITextEqualityComparer : 
+    IEqualityComparer<string?>,
+    IEqualityComparer<char[]>,
+    IEqualityComparer<char>,
+    IEqualityComparer
 {
-    bool IEqualityComparer<string?>.Equals(string? x, string? y) => Equals(x.AsSpan(), y.AsSpan());
-    
-    bool IEqualityComparer<char[]>.Equals(char[]? x, char[]? y) => Equals(new Span<char>(x), new Span<char>(y));
 
-    bool IEqualityComparer<char>.Equals(char x, char y) => Equals(x.AsReadOnlySpan(), y.AsReadOnlySpan());
+    bool IEqualityComparer<string?>.Equals(string? x, string? y) => Equals(x.AsSpan(), y.AsSpan());
+
+    bool IEqualityComparer<char[]>.Equals(char[]? x, char[]? y) => Equals(x.AsSpan(), y.AsSpan());
+
+    bool IEqualityComparer<char>.Equals(char x, char y) => Equals(x.AsSpan(), y.AsSpan());
 
     bool IEqualityComparer.Equals(object? x, object? y)
     {
-        if (x is char xChar)
+        ReadOnlySpan<char> xSpan = x switch
         {
-            if (y is char yChar)
-            {
-                return Equals(xChar, yChar);
-            }
-            
-            // Different types
-            return false;
-        }
-        if (x is char[] xChars)
+            string str => str.AsSpan(),
+            char[] chars => chars,
+            char ch => ch.AsSpan(),
+            _ => default
+        };
+        ReadOnlySpan<char> ySpan = y switch
         {
-            if (y is char[] yChars)
-            {
-                return Equals(xChars, yChars);
-            }
-            // Different types
-            return false;
-        }
-        // Different types
-        return false;
+            string str => str.AsSpan(),
+            char[] chars => chars,
+            char ch => ch.AsSpan(),
+            _ => default
+        };
+        return Equals(xSpan, ySpan);
     }
 
-    bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right);
+    bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y);
 
-    int IEqualityComparer<string?>.GetHashCode(string? str) => GetHashCode(str.AsSpan());
+    int IEqualityComparer<string?>.GetHashCode(string? text) => GetHashCode(text.AsSpan());
 
-    int IEqualityComparer<char[]>.GetHashCode(char[]? charArray) => GetHashCode(new Span<char>(charArray));
+    int IEqualityComparer<char[]>.GetHashCode(char[]? chars) => GetHashCode(chars.AsSpan());
 
-    int IEqualityComparer<char>.GetHashCode(char ch) => GetHashCode(ch.AsReadOnlySpan());
+    int IEqualityComparer<char>.GetHashCode(char ch) => GetHashCode(ch.AsSpan());
 
     int IEqualityComparer.GetHashCode(object? obj)
     {
-        if (obj is char ch)
-            return GetHashCode(ch);
-        if (obj is char[] chars)
-            return GetHashCode(chars);
-        if (obj is string str)
-            return GetHashCode(str);
-        return 0;
+        ReadOnlySpan<char> span = obj switch
+        {
+            string str => str.AsSpan(),
+            char[] chars => chars,
+            char ch => ch.AsSpan(),
+            _ => default
+        };
+        return GetHashCode(span);
     }
 
     int GetHashCode(ReadOnlySpan<char> span);
 }
+#endif

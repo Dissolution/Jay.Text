@@ -1,4 +1,9 @@
-﻿using System.Globalization;
+﻿using System.Runtime.CompilerServices;
+using InlineIL;
+using Jay.Text.Extensions;
+
+// ReSharper disable InvokeAsExtensionMethod
+// ^ I want to be sure I'm calling the very specific version of a method
 
 // ReSharper disable EntityNameCapturedOnly.Global
 
@@ -6,342 +11,371 @@ namespace Jay.Text;
 
 public static class TextHelper
 {
+    public const string Digits = "0123456789";
+    public const string UppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    public const string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
+
     /// <summary>
-    /// The offset between a lowercase ASCII a-z letter and its uppercase A-Z partner
+    /// The offset between an uppercase ascii letter and its lowercase equivalent
     /// </summary>
     internal const int UppercaseOffset = 'a' - 'A';
 
     /// <summary>
-    /// The numbers 0 through 9
+    /// Unsafe / Unchecked Methods -- Nothing here has bounds checks!
     /// </summary>
-    public const string Digits = "0123456789";
-    /// <summary>
-    /// The uppercase letters, A through Z
-    /// </summary>
-    public const string UppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    /// <summary>
-    /// The lowercase letters, a through z
-    /// </summary>
-    public const string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
-
-    /// <summary>
-    /// Unsafe text-related methods that perform no index/range/bounds checking
-    /// </summary>
-    public static unsafe class Unsafe
+    internal static class Unsafe
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(char* sourcePtr, char* destPtr, int charCount)
+        internal static unsafe void CopyBlock(char* sourcePtr, ref char destPtr, int charCount)
         {
-            Emit.Ldarg(nameof(destPtr));
-            Emit.Ldarg(nameof(sourcePtr));
-            Emit.Ldarg(nameof(charCount));
-            Emit.Sizeof<char>();
-            Emit.Mul();
-            Emit.Cpblk();
+            IL.Emit.Ldarg(nameof(destPtr));
+            IL.Emit.Ldarg(nameof(sourcePtr));
+            IL.Emit.Ldarg(nameof(charCount));
+            IL.Emit.Sizeof<char>();
+            IL.Emit.Mul();
+            IL.Emit.Cpblk();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(in char firstChar, ref char destChar, int charCount)
+        internal static void CopyBlock(in char sourcePtr, ref char destPtr, int charCount)
         {
-            Emit.Ldarg(nameof(destChar));
-            Emit.Ldarg(nameof(firstChar));
-            Emit.Ldarg(nameof(charCount));
-            Emit.Sizeof<char>();
-            Emit.Mul();
-            Emit.Cpblk();
+            IL.Emit.Ldarg(nameof(destPtr));
+            IL.Emit.Ldarg(nameof(sourcePtr));
+            IL.Emit.Ldarg(nameof(charCount));
+            IL.Emit.Sizeof<char>();
+            IL.Emit.Mul();
+            IL.Emit.Cpblk();
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(ReadOnlySpan<char> source, Span<char> dest)
+        internal static void CopyTo(ReadOnlySpan<char> source, Span<char> dest)
         {
-            Copy(in source.GetPinnableReference(),
+            CopyBlock(
+                in source.GetPinnableReference(),
                 ref dest.GetPinnableReference(),
                 source.Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(ReadOnlySpan<char> source, char[] dest)
+        internal static void CopyTo(ReadOnlySpan<char> source, char[] dest)
         {
-            Copy(in source.GetPinnableReference(),
-                ref MemoryMarshal.GetArrayDataReference<char>(dest),
-                source.Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(char[] source, Span<char> dest)
-        {
-            Copy(in MemoryMarshal.GetArrayDataReference<char>(source),
+            CopyBlock(
+                in source.GetPinnableReference(),
                 ref dest.GetPinnableReference(),
                 source.Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(char[] source, char[] dest)
+        internal static void CopyTo(char[] source, Span<char> dest)
         {
-            Copy(in MemoryMarshal.GetArrayDataReference<char>(source),
-                ref MemoryMarshal.GetArrayDataReference<char>(dest),
-                source.Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(string source, Span<char> dest)
-        {
-            Copy(in source.GetPinnableReference(),
+            CopyBlock(
+                in source.GetPinnableReference(),
                 ref dest.GetPinnableReference(),
                 source.Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy(string source, char[] dest)
+        internal static void CopyTo(char[] source, char[] dest)
         {
-            Copy(in source.GetPinnableReference(),
-                ref MemoryMarshal.GetArrayDataReference<char>(dest),
+            CopyBlock(in source.GetPinnableReference(),
+                ref dest.GetPinnableReference(),
                 source.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void CopyTo(string source, Span<char> dest)
+        {
+#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
+            unsafe
+            {
+                fixed (char* ptr = source)
+                {
+                    CopyBlock(
+                        ptr,
+                        ref dest.GetPinnableReference(),
+                        source.Length);
+                }
+            }
+#else
+            CopyBlock(
+                in source.GetPinnableReference(),
+                ref dest.GetPinnableReference(),
+                source.Length);
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void CopyTo(string source, char[] dest)
+        {
+#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
+            unsafe
+            {
+                fixed (char* ptr = source)
+                {
+                    CopyBlock(
+                        ptr,
+                        ref dest.GetPinnableReference(),
+                        source.Length);
+                }
+            }
+#else
+            CopyBlock(
+                in source.GetPinnableReference(),
+                ref dest.GetPinnableReference(),
+                source.Length);
+#endif
+        }
+    }
+
+    public static void CopyTo(ReadOnlySpan<char> source, Span<char> dest)
+    {
+        var len = source.Length;
+        if (len == 0) return;
+        if (len > dest.Length)
+            throw new ArgumentException("Destination cannot contain Source", nameof(dest));
+        Unsafe.CopyBlock(
+            in source.GetPinnableReference(),
+            ref dest.GetPinnableReference(),
+            len);
+    }
+
+    public static void CopyTo(string? source, Span<char> dest)
+    {
+        if (source is null) return;
+        var len = source.Length;
+        if (len == 0) return;
+        if (len > dest.Length)
+            throw new ArgumentException("Destination cannot contain Source", nameof(dest));
+        unsafe
+        {
+            fixed (char* sourcePtr = source)
+            {
+                Unsafe.CopyBlock(
+                    sourcePtr,
+                    ref dest.GetPinnableReference(),
+                    len);
+            }
         }
     }
 
     public static bool TryCopyTo(ReadOnlySpan<char> source, Span<char> dest)
     {
-        if (dest.Length < source.Length) return false;
-        Unsafe.Copy(in source.GetPinnableReference(),
+        var len = source.Length;
+        if (len == 0) return true;
+        if (len > dest.Length) return false;
+        Unsafe.CopyBlock(
+            in source.GetPinnableReference(),
             ref dest.GetPinnableReference(),
-            source.Length);
-        return true;
-    }
-
-    public static bool TryCopyTo(ReadOnlySpan<char> source, char[]? dest)
-    {
-        if (dest is null) return source.Length == 0;
-        if (dest.Length < source.Length) return false;
-        Unsafe.Copy(in source.GetPinnableReference(),
-            ref MemoryMarshal.GetArrayDataReference<char>(dest),
-            source.Length);
-        return true;
-    }
-
-    public static bool TryCopyTo(char[]? source, Span<char> dest)
-    {
-        if (source is null || source.Length == 0) return true;
-        if (dest.Length < source.Length) return false;
-        Unsafe.Copy(in MemoryMarshal.GetArrayDataReference<char>(source),
-            ref dest.GetPinnableReference(),
-            source.Length);
-        return true;
-    }
-
-    public static bool TryCopyTo(char[]? source, char[]? dest)
-    {
-        if (source is null || source.Length == 0) return true;
-        if (dest is null) return false;
-        if (dest.Length < source.Length) return false;
-        Unsafe.Copy(in MemoryMarshal.GetArrayDataReference<char>(source),
-            ref MemoryMarshal.GetArrayDataReference<char>(dest),
-            source.Length);
+            len);
         return true;
     }
 
     public static bool TryCopyTo(string? source, Span<char> dest)
     {
-        if (string.IsNullOrEmpty(source)) return true;
-        if (dest.Length < source.Length) return false;
-        Unsafe.Copy(in source.GetPinnableReference(),
-            ref dest.GetPinnableReference(),
-            source.Length);
+        if (source is null) return true;
+        var len = source.Length;
+        if (len == 0) return true;
+        if (len > dest.Length) return false;
+        unsafe
+        {
+            fixed (char* sourcePtr = source)
+            {
+                Unsafe.CopyBlock(
+                    sourcePtr,
+                    ref dest.GetPinnableReference(),
+                    len);
+            }
+        }
+
         return true;
     }
 
-    public static bool TryCopyTo(string? source, char[]? dest)
-    {
-        if (string.IsNullOrEmpty(source)) return true;
-        if (dest is null) return false;
-        if (dest.Length < source.Length) return false;
-        Unsafe.Copy(in source.GetPinnableReference(),
-            ref MemoryMarshal.GetArrayDataReference<char>(dest),
-            source.Length);
-        return true;
-    }
-    
     #region Equals
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    public static bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x, y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> left, char[]? right)
+    public static bool Equals(ReadOnlySpan<char> x, char[]? y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x, y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> left, string? right)
+    public static bool Equals(ReadOnlySpan<char> x, string? y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x, y.AsSpan());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? left, ReadOnlySpan<char> right)
+    public static bool Equals(char[]? x, ReadOnlySpan<char> y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x, y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? left, char[]? right)
+    public static bool Equals(char[]? x, char[]? y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x, y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? left, string? right)
+    public static bool Equals(char[]? x, string? y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x, y.AsSpan());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? left, ReadOnlySpan<char> right)
+    public static bool Equals(string? x, ReadOnlySpan<char> y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x.AsSpan(), y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? left, char[]? right)
+    public static bool Equals(string? x, char[]? y)
     {
-        return MemoryExtensions.SequenceEqual<char>(left, right);
+        return MemoryExtensions.SequenceEqual<char>(x.AsSpan(), y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? left, string? right)
+    public static bool Equals(string? x, string? y)
     {
-        return string.Equals(left, right);
+        return string.Equals(x, y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right, StringComparison comparison)
+    public static bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x, y, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> left, char[]? right, StringComparison comparison)
+    public static bool Equals(ReadOnlySpan<char> x, char[]? y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x, y, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(ReadOnlySpan<char> left, string? right, StringComparison comparison)
+    public static bool Equals(ReadOnlySpan<char> x, string? y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x, y.AsSpan(), comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? left, ReadOnlySpan<char> right, StringComparison comparison)
+    public static bool Equals(char[]? x, ReadOnlySpan<char> y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x, y, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? left, char[]? right, StringComparison comparison)
+    public static bool Equals(char[]? x, char[]? y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x, y, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(char[]? left, string? right, StringComparison comparison)
+    public static bool Equals(char[]? x, string? y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x, y.AsSpan(), comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? left, ReadOnlySpan<char> right, StringComparison comparison)
+    public static bool Equals(string? x, ReadOnlySpan<char> y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x.AsSpan(), y, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? left, char[]? right, StringComparison comparison)
+    public static bool Equals(string? x, char[]? y, StringComparison comparison)
     {
-        return MemoryExtensions.Equals(left, right, comparison);
+        return MemoryExtensions.Equals(x.AsSpan(), y, comparison);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(string? left, string? right, StringComparison comparison)
+    public static bool Equals(string? x, string? y, StringComparison comparison)
     {
-        return string.Equals(left, right, comparison);
+        return string.Equals(x, y, comparison);
     }
+
     #endregion
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiDigit(char ch) => ch is <= '9' and >= '0';
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiLower(char ch) => ch is <= 'z' and >= 'a';
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiUpper(char ch) => ch is <= 'Z' and >= 'A';
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAscii(char ch) => ch <= 127;
-    
-    /// <summary>
-    /// Transforms the specified characters into UppercaseLetters, using char.ToUpper(ch)
-    /// </summary>
-    /// <param name="text"></param>
-    /// <returns></returns>
-    public static string ToUppercaseString(ReadOnlySpan<char> text)
+    public static string AsString(this ReadOnlySpan<char> text)
     {
-        Span<char> buffer = stackalloc char[text.Length];
-        for (var i = text.Length - 1; i >= 0; i--)
+#if NET48 || NETSTANDARD2_0
+        unsafe
         {
-            buffer[i] = char.ToUpper(text[i]);
+            fixed (char* textPtr = text)
+            {
+                return new string(textPtr, 0, text.Length);
+            }
         }
-        return new string(buffer);
+#else
+        return new string(text);
+#endif
     }
 
-    /// <summary>
-    /// Transforms the specified characters into UppercaseLetters, using char.ToLower(ch)
-    /// </summary>
-    /// <param name="text"></param>
-    /// <returns></returns>
-    public static string ToLowercaseString(ReadOnlySpan<char> text)
+    public static string AsString(this Span<char> text)
     {
-        Span<char> buffer = stackalloc char[text.Length];
-        for (var i = text.Length - 1; i >= 0; i--)
+#if NET48 || NETSTANDARD2_0
+        unsafe
         {
-            buffer[i] = char.ToLower(text[i]);
+            fixed (char* textPtr = text)
+            {
+                return new string(textPtr, 0, text.Length);
+            }
         }
-        return new string(buffer);
-    }
-    
-    public static string ToTitleCaseString(ReadOnlySpan<char> text)
-    {
-        var str = new string(text);
-        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(str);
-    }
-    
-    [return: NotNullIfNotNull("text")]
-    public static string? ToTitleCaseString(string? text)
-    {
-        if (text is null) return null;
-        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text);
+#else
+        return new string(text);
+#endif
     }
 
-    /// <summary>
-    /// Reverses the order of the specified characters.
-    /// </summary>
-    /// <param name="text"></param>
-    /// <returns></returns>
-    public static string ToReverseString(ReadOnlySpan<char> text)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string[] Split(string? text, string separator, StringSplitOptions options = StringSplitOptions.None)
     {
-        int end = text.Length - 1;
-        Span<char> buffer = stackalloc char[text.Length];
-        for (var i = 0; i <= end; i++)
-        {
-            buffer[i] = text[end - i];
-        }
-        return new string(buffer);
+        if (text is null) return Array.Empty<string>();
+        return text.Split(new string[1] { separator }, options);
     }
+
+    public static List<(int start, int length)> SplitLines(this ReadOnlySpan<char> text)
+    {
+        var ranges = new List<(int, int)>();
+        ReadOnlySpan<char> sep = Environment.NewLine.AsSpan();
+        int start = 0;
+        int index = 0;
+        int len = text.Length;
+        while (index < len)
+        {
+            if (text.StartsWith(sep))
+            {
+                int end = index;
+                if (end - start > 0)
+                {
+                    ranges.Add((start, end - start));
+                }
+
+                start = index + sep.Length;
+                index = start;
+            }
+            else
+            {
+                index++;
+            }
+        }
+
+        if (index - start > 0)
+        {
+            ranges.Add((start, index - start));
+        }
+
+        return ranges;
+    }
+
 
     public static string Refine(string? text) => Refine(text.AsSpan());
 
@@ -350,37 +384,43 @@ public static class TextHelper
     public static string Refine(ReadOnlySpan<char> text)
     {
         Span<char> buffer = stackalloc char[text.Length];
-        int written = 0;
+        int b = 0;
         char ch;
         for (var i = 0; i < text.Length; i++)
         {
             ch = text[i];
-            if (ch is >= '0' and <= '9' || ch is >= 'A' and <= 'Z')
+#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
+            if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z'))
             {
-                buffer[written++] = ch;
+                buffer[b++] = ch;
             }
-            else if (ch is >= 'a' and <= 'z')
+            else if (ch >= 'a' && ch <= 'z')
             {
-                buffer[written++] = (char)(ch - UppercaseOffset);
+                buffer[b++] = (char)(ch - UppercaseOffset);
+            }
+#else
+            if (char.IsAsciiDigit(ch) || char.IsAsciiLetterUpper(ch))
+            {
+                buffer[b++] = ch;
+            }
+            else if (char.IsAsciiLetterLower(ch))
+            {
+                buffer[b++] = (char)(ch - UppercaseOffset);
+            }
+#endif
+        }
+
+#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
+        unsafe
+        {
+            fixed (char* bufferPtr = buffer)
+            {
+                return new string(bufferPtr, 0, b);
             }
         }
-        return new string(buffer[..written]);
+
+#else
+        return new string(buffer.Slice(0, b));
+#endif
     }
-    
-    // #region Split
-    // public static IEnumerable<string> Split(ReadOnlySpan<char> text, char delimiter)
-    // {
-    //     int start = 0;
-    //     for (var i = 0; i < text.Length; i++)
-    //     {
-    //         if (text[i] == delimiter)
-    //         {
-    //             yield return new string(text[start..i]);
-    //             start = i + 1;
-    //         }
-    //     }
-    //     // Remaining
-    //     yield return new string(text[start..]);
-    // }
-    // #endregion
 }

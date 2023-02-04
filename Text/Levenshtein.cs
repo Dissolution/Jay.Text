@@ -93,16 +93,14 @@ public static class Levenshtein
         if (b is null) return a!.Length;
 
         if (a.Length <= b.Length)
-            return CalculateImpl(a, b, maximumDistance);
-        else
-            return CalculateImpl(b, a, maximumDistance);
+            return CalculateImpl(a.AsSpan(), b.AsSpan(), maximumDistance);
+        return CalculateImpl(b.AsSpan(), a.AsSpan(), maximumDistance);
     }
 
     public static int Calculate(ReadOnlySpan<char> a, ReadOnlySpan<char> b, int maximumDistance = int.MaxValue)
     {
         if (a.Length <= b.Length)
             return CalculateImpl(a, b, maximumDistance);
-        else
-            return CalculateImpl(b, a, maximumDistance);
+        return CalculateImpl(b, a, maximumDistance);
     }
 }

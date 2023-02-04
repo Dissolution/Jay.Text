@@ -6,11 +6,14 @@
 public enum TextOrder : byte
 {
     /// <summary>
-    /// From front to back ([0..])
+    /// From front to back <br/>
+    /// <c>[start..end]</c>
     /// </summary>
-    FrontToBack = 0,
+    LeftToRight = 0,
+
     /// <summary>
-    /// From back to front ([..^1])
+    /// From back to front <br/>
+    /// <c>[end..start]</c>
     /// </summary>
-    BackToFront = 1,
+    RightToLeft = 1,
 }

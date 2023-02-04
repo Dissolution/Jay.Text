@@ -43,6 +43,15 @@ public class ReplaceTests
         text.Count(ch => ch == '.').Should().Be(5);
     }
 
+    private static int CountInstances(string? text, string? occurence) =>
+        CountInstances(text.AsSpan(), occurence.AsSpan());
+
+    private static int CountInstances(ReadOnlySpan<char> text, string? occurence) =>
+        CountInstances(text, occurence.AsSpan());
+
+    private static int CountInstances(string? text, ReadOnlySpan<char> occurence) =>
+        CountInstances(text.AsSpan(), occurence);
+
     private static int CountInstances(ReadOnlySpan<char> text, ReadOnlySpan<char> occurence)
     {
         int instances = 0;
@@ -55,6 +64,15 @@ public class ReplaceTests
         }
         return instances;
     }
+
+    private static int CountInstances(string? text, string? occurence, StringComparison comparison) =>
+        CountInstances(text.AsSpan(), occurence.AsSpan(), comparison);
+
+    private static int CountInstances(ReadOnlySpan<char> text, string? occurence, StringComparison comparison) =>
+        CountInstances(text, occurence.AsSpan(), comparison);
+
+    private static int CountInstances(string? text, ReadOnlySpan<char> occurence, StringComparison comparison) =>
+        CountInstances(text.AsSpan(), occurence, comparison);
     
     private static int CountInstances(ReadOnlySpan<char> text, ReadOnlySpan<char> occurence, StringComparison comparison)
     {

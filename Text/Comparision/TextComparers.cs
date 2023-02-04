@@ -1,4 +1,5 @@
-﻿namespace Jay.Text.Comparision;
+﻿#if NET6_0_OR_GREATER
+namespace Jay.Text.Comparision;
 
 public abstract class TextComparers : ITextComparer, ITextEqualityComparer
 {
@@ -29,10 +30,61 @@ public abstract class TextComparers : ITextComparer, ITextEqualityComparer
     public static TextComparers OrdinalIgnoreCase { get; } = new TextComparison(StringComparison.OrdinalIgnoreCase);
     public static TextComparers Invariant { get; } = new TextComparison(StringComparison.InvariantCulture);
     public static TextComparers InvariantIgnoreCase { get; } = new TextComparison(StringComparison.InvariantCultureIgnoreCase);
-                  
+
     public static TextComparers Default { get; } = new FastTextComparers();
-    
-    public abstract int Compare(ReadOnlySpan<char> left, ReadOnlySpan<char> right);
-    public abstract bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right);
+
+    public abstract int Compare(ReadOnlySpan<char> x, ReadOnlySpan<char> y);
+    public abstract bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y);
     public abstract int GetHashCode(ReadOnlySpan<char> span);
 }
+
+internal sealed class FastTextComparers : TextComparers
+{
+    public int Compare(char x, char y)
+    {
+        if (x < y) return -1;
+        if (x == y) return 0;
+        return 1;
+    }
+
+    public override int Compare(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    {
+        return MemoryExtensions.SequenceCompareTo<char>(x, y);
+    }
+
+    public bool Equals(char x, char y)
+    {
+        return x == y;
+    }
+
+    public bool Equals(string? x, string? y)
+    {
+        return TextHelper.Equals(x, y);
+    }
+
+    public bool Equals(char[]? x, char[]? y)
+    {
+        return TextHelper.Equals(x, y);
+    }
+
+    public override bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    {
+        return TextHelper.Equals(x, y);
+    }
+
+    public int GetHashCode(char ch)
+    {
+        return (int)ch;
+    }
+
+    public int GetHashCode(string? text)
+    {
+        return string.GetHashCode(text);
+    }
+
+    public override int GetHashCode(ReadOnlySpan<char> text)
+    {
+        return string.GetHashCode(text);
+    }
+}
+#endif

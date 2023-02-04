@@ -1,41 +1,50 @@
-﻿
+﻿using System.Runtime.CompilerServices;
 
 namespace Jay.Text.Extensions;
 
 public static class CharExtensions
 {
-    /// <summary>
-    /// Returns a <c>ReadOnlySpan&lt;char&gt;</c> containing this <see cref="char"/>
-    /// </summary>
-    public static ReadOnlySpan<char> AsReadOnlySpan(in this char ch) => new ReadOnlySpan<char>(in ch);
+#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlySpan<char> AsSpan(this in char ch)
+    {
+        unsafe
+        {
+            fixed (char* chPtr = &ch)
+            {
+                return new ReadOnlySpan<char>(chPtr, 1);
+            }
+        }
+    }
 
-    /// <summary>
-    /// Is this <see cref="char"/> a digit?
-    /// </summary>
-    public static bool IsDigit(this char ch) => char.IsDigit(ch);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiDigit(this char ch) => ch is >= '0' and <= '9';
 
-    /// <summary>
-    /// Is this <see cref="char"/> considered white-space?
-    /// </summary>
-    public static bool IsWhiteSpace(this char ch) => char.IsWhiteSpace(ch);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiLetterLower(this char ch) => ch is >= 'a' and <= 'z';
 
-    /// <summary>
-    /// Converts this <see cref="char"/> into its UpperCase equivalent.
-    /// </summary>
-    public static char ToUpper(this char ch) => char.ToUpper(ch);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiLetterUpper(this char ch) => ch is >= 'A' and <= 'Z';
 
-    /// <summary>
-    /// Converts this <see cref="char"/> into its UpperCase equivalent.
-    /// </summary>
-    public static char ToUpper(this char ch, CultureInfo culture) => char.ToUpper(ch, culture);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAscii(this char ch) => (ushort)ch < 128;
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlySpan<char> AsSpan(this in char ch)
+    {
+        return new ReadOnlySpan<char>(in ch);
+    }
 
-    /// <summary>
-    /// Converts this <see cref="char"/> into its LowerCase equivalent.
-    /// </summary>
-    public static char ToLower(this char ch) => char.ToLower(ch);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiDigit(this char ch) => char.IsAsciiDigit(ch);
 
-    /// <summary>
-    /// Converts this <see cref="char"/> into its LowerCase equivalent.
-    /// </summary>
-    public static char ToLower(this char ch, CultureInfo culture) => char.ToLower(ch, culture);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiLetterLower(this char ch) => char.IsAsciiLetterLower(ch);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiLetterUpper(this char ch) => char.IsAsciiLetterUpper(ch);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAscii(this char ch) => char.IsAscii(ch);
+#endif
 }

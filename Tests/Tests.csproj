@@ -1,19 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFrameworks>net7.0</TargetFrameworks>
+        <LangVersion>latest</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-
         <IsPackable>false</IsPackable>
-
         <AssemblyName>Jay.Text.Tests</AssemblyName>
-
         <RootNamespace>Jay.Text.Tests</RootNamespace>
+        <ApplicationIcon>..\BlueJay.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="6.7.0" />
+        <PackageReference Include="FluentAssertions" Version="6.9.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
         <PackageReference Include="xunit" Version="2.4.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">

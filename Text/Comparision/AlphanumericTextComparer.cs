@@ -1,4 +1,6 @@
-﻿namespace Jay.Text.Comparision;
+﻿#if NET6_0_OR_GREATER
+
+namespace Jay.Text.Comparision;
 
 /// <inheritdoc />
 /// <summary>
@@ -6,11 +8,13 @@
 /// </summary>
 public class AlphanumericTextComparer : ITextComparer
 {
+    public static AlphanumericTextComparer Instance { get; } = new AlphanumericTextComparer();
+
     private readonly StringComparison _stringComparison;
     private readonly TextOrder _textOrder;
 
     public AlphanumericTextComparer(StringComparison stringComparison = StringComparison.CurrentCulture,
-                                    TextOrder textOrder = TextOrder.FrontToBack)
+                                    TextOrder textOrder = TextOrder.LeftToRight)
     {
         _stringComparison = stringComparison;
         _textOrder = textOrder;
@@ -21,7 +25,7 @@ public class AlphanumericTextComparer : ITextComparer
                                            StringComparison comparison)
     {
         int l = 0;
-        int leftLength = left.Length; 
+        int leftLength = left.Length;
 
         int r = 0;
         int rightLength = right.Length;
@@ -134,41 +138,11 @@ public class AlphanumericTextComparer : ITextComparer
         return 0;
     }
 
-    public int Compare(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    public int Compare(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
     {
-        if (_textOrder == TextOrder.FrontToBack)
-            return FrontToBlackCompare(left, right, _stringComparison);
-        return BackToFrontCompare(left, right, _stringComparison);
-    }
-
-    public int Compare(string? x, string? y)
-    {
-        if (_textOrder == TextOrder.FrontToBack)
+        if (_textOrder == TextOrder.LeftToRight)
             return FrontToBlackCompare(x, y, _stringComparison);
         return BackToFrontCompare(x, y, _stringComparison);
-    }
-
-    public int Compare(char[]? x, char[]? y)
-    {
-        if (_textOrder == TextOrder.FrontToBack)
-            return FrontToBlackCompare(x, y, _stringComparison);
-        return BackToFrontCompare(x, y, _stringComparison);
-    }
-
-    int IComparer.Compare(object? x, object? y)
-    {
-        ReadOnlySpan<char> left = x switch
-        {
-            string str => str,
-            char[] chars => chars,
-            _ => x?.ToString()
-        };
-        ReadOnlySpan<char> right = y switch
-        {
-            string str => str,
-            char[] chars => chars,
-            _ => x?.ToString()
-        };
-        return Compare(left, right);
     }
 }
+#endif

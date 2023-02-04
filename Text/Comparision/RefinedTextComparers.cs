@@ -1,7 +1,10 @@
-﻿namespace Jay.Text.Comparision;
+﻿#if NET6_0_OR_GREATER
+using System.Runtime.CompilerServices;
+
+namespace Jay.Text.Comparision;
 
 /// <summary>
-/// A utility for simplifying <see cref="string"/>s by stripping all non-ASCII characters, non-digits, non-letters, then uppercasing.
+/// A utility for simplifying <see cref="string"/>s by stripping all non-ASCII characters, non-digits, and non-letters, then uppercasing.
 /// </summary>
 public sealed class RefinedTextComparers : TextComparers
 {
@@ -10,17 +13,15 @@ public sealed class RefinedTextComparers : TextComparers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryRefine(ref char ch)
     {
-        switch (ch)
+        if (char.IsDigit(ch) || char.IsAsciiLetterUpper(ch))
+            return true;
+        if (char.IsAsciiLetterLower(ch))
         {
-            case >= '0' and <= '9':
-            case >= 'A' and <= 'Z':
-                return true;
-            case >= 'a' and <= 'z':
-                ch = (char)(ch - TextHelper.UppercaseOffset);
-                return true;
-            default:
-                return false;
+            ch = (char)(ch - TextHelper.UppercaseOffset);
+            return true;
         }
+
+        return false;
     }
 
 
@@ -30,14 +31,14 @@ public sealed class RefinedTextComparers : TextComparers
         while (index < text.Length)
         {
             refinedChar = text[index++];
-            switch (refinedChar)
+
+            if (char.IsDigit(refinedChar) || char.IsAsciiLetterUpper(refinedChar))
+                return true;
+
+            if (char.IsAsciiLetterLower(refinedChar))
             {
-                case >= '0' and <= '9':
-                case >= 'A' and <= 'Z':
-                    return true;
-                case >= 'a' and <= 'z':
-                    refinedChar = (char)(refinedChar - TextHelper.UppercaseOffset);
-                    return true;
+                refinedChar = (char)(refinedChar - TextHelper.UppercaseOffset);
+                return true;
             }
         }
 
@@ -45,40 +46,26 @@ public sealed class RefinedTextComparers : TextComparers
         return false;
     }
 
-    public override bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    public override bool Equals(ReadOnlySpan<char> xText, ReadOnlySpan<char> yText)
     {
-        int leftIndex = 0;
-        int rightIndex = 0;
-        while(true)
+        int x = 0;
+        int y = 0;
+        while (TryFindNextRefinedChar(xText, ref x, out var xCh) &&
+            TryFindNextRefinedChar(yText, ref y, out var yCh))
         {
-            bool foundLeft = TryFindNextRefinedChar(left, ref leftIndex, out var leftChar);
-            bool foundRight = TryFindNextRefinedChar(right, ref rightIndex, out var rightChar);
+            if (xCh != yCh) return false;
+        }
 
-            if (!foundLeft)
-            {
-                if (!foundRight) return true;
-                return false;
-            }
-            if (!foundRight) return false;
-            
-            // Either ended before the other
-            if (foundLeft != foundRight)
-            {
-                return false;
-            }
-            
-            // Both ended?
-            if (!foundLeft && !foundRight)
-            {
-                return true;
-            }
-            
-            // Are the chars different?
-            if (leftChar != rightChar)
-            {
-                return false;
-            }
-        } 
+        //Both ended at the same time, so they're equal
+        return true;
+    }
+
+    public int GetHashCode(char ch)
+    {
+        char c = ch;
+        if (TryRefine(ref c))
+            return (int)c;
+        return 0;
     }
 
     public override int GetHashCode(ReadOnlySpan<char> text)
@@ -89,38 +76,27 @@ public sealed class RefinedTextComparers : TextComparers
             char c = text[i];
             if (TryRefine(ref c))
             {
-                hasher.Add<char>(c);
+                hasher.Add(c);
             }
         }
+
         return hasher.ToHashCode();
     }
 
-    public override int Compare(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    public override int Compare(ReadOnlySpan<char> xText, ReadOnlySpan<char> yText)
     {
-        int leftIndex = 0;
-        int rightIndex = 0;
-        int compare;
-        do
+        int x = 0;
+        int y = 0;
+        while (TryFindNextRefinedChar(xText, ref x, out var xCh) &&
+            TryFindNextRefinedChar(yText, ref y, out var yCh))
         {
-            bool foundLeft = TryFindNextRefinedChar(left, ref leftIndex, out var leftChar);
-            bool foundRight = TryFindNextRefinedChar(right, ref rightIndex, out var rightChar);
-            
-            if (!foundLeft)
-            {
-                // Left is shorter, sorts before right
-                if (foundRight) return -1;
-                // Ended at the same time
-                return 0;
-            }
+            var c = xCh.CompareTo(yCh);
+            if (c != 0)
+                return c;
+        }
 
-            // Right is shorter, sorts before left
-            if (!foundRight) return 1;
-
-            // Compare them
-            compare = leftChar.CompareTo(rightChar);
-            // Only if they are different do we exit
-        } while (compare == 0);
-        // They are different
-        return compare;
+        //Both ended at the same time, so they're equal
+        return 0;
     }
 }
+#endif

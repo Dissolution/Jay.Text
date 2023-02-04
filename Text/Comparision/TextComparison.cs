@@ -1,4 +1,5 @@
-﻿namespace Jay.Text.Comparision;
+﻿#if NET6_0_OR_GREATER
+namespace Jay.Text.Comparision;
 
 internal sealed class TextComparison : TextComparers
 {
@@ -13,12 +14,10 @@ internal sealed class TextComparison : TextComparers
     {
         return string.Compare(x, y, _stringComparison);
     }
-    
-    
 
-    public override int Compare(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    public override int Compare(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
     {
-        return MemoryExtensions.CompareTo(left, right, _stringComparison);
+        return MemoryExtensions.CompareTo(x, y, _stringComparison);
     }
 
     public bool Equals(string? x, string? y)
@@ -26,9 +25,9 @@ internal sealed class TextComparison : TextComparers
         return string.Equals(x, y, _stringComparison);
     }
 
-    public override bool Equals(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+    public override bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
     {
-        return MemoryExtensions.Equals(left, right, _stringComparison);
+        return MemoryExtensions.Equals(x, y, _stringComparison);
     }
 
     public int GetHashCode(string? str)
@@ -42,3 +41,4 @@ internal sealed class TextComparison : TextComparers
         return string.GetHashCode(span, _stringComparison);
     }
 }
+#endif

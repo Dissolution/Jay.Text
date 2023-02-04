@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
@@ -72,13 +71,13 @@ public class EqualsBenchmarks
     [Benchmark]
     public bool MemoryExtensionsSequenceEqual()
     {
-        return MemoryExtensions.SequenceEqual<char>(A, B);
+        return MemoryExtensions.SequenceEqual<char>(A.AsSpan(), B.AsSpan());
     }
     
     [Benchmark]
     public bool MemoryExtensionsEqualsOrdinal()
     {
-        return MemoryExtensions.Equals(A, B, StringComparison.Ordinal);
+        return MemoryExtensions.Equals(A.AsSpan(), B.AsSpan(), StringComparison.Ordinal);
     }
 
     [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -94,8 +93,8 @@ public class EqualsBenchmarks
     [Benchmark]
     public unsafe bool MemCmp()
     {
-        ReadOnlySpan<char> a = A;
-        ReadOnlySpan<char> b = B;
+        ReadOnlySpan<char> a = A.AsSpan();
+        ReadOnlySpan<char> b = B.AsSpan();
         if (a.Length != b.Length) return false;
         return memcmp(AsBytePointer(a), AsBytePointer(b), (nuint)(a.Length * 2)) == 0;
     }

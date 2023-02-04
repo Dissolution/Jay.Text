@@ -1,21 +1,22 @@
-﻿namespace Jay.Text;
+﻿using System.Runtime.CompilerServices;
 
+namespace Jay.Text;
+
+#if NET6_0_OR_GREATER
 [InterpolatedStringHandler]
-public ref struct InterpolatedTextBuilder
+#endif
+public ref struct InterpolatedTextBuilderHandler
 {
     private readonly TextBuilder _textBuilder;
 #if DEBUG
     private readonly int _handlerTextStart;
     private int _handlerTextEnd;
-
-    public int WroteCount => _handlerTextEnd - _handlerTextStart;
 #endif
-    
-    public InterpolatedTextBuilder(int literalLength, int formattedCount, TextBuilder textBuilder)
+
+    public InterpolatedTextBuilderHandler(int literalLength, int formattedCount,
+                                          TextBuilder textBuilder)
     {
-        ArgumentNullException.ThrowIfNull(textBuilder);
-        _textBuilder = textBuilder;
-        _textBuilder.EnsureCanAdd(literalLength + (formattedCount * 16));
+        _textBuilder = textBuilder ?? throw new ArgumentNullException(nameof(textBuilder));
 #if DEBUG
         _handlerTextEnd = _handlerTextStart = _textBuilder.Length;
 #endif
@@ -57,10 +58,11 @@ public ref struct InterpolatedTextBuilder
         _handlerTextEnd = _textBuilder.Length;
 #endif
     }
-    
-    public override bool Equals(object? obj) => throw new InvalidOperationException();
 
-    public override int GetHashCode() => throw new InvalidOperationException();
+
+    public override bool Equals(object? obj) => throw new NotSupportedException();
+
+    public override int GetHashCode() => throw new NotSupportedException();
 
     public override string ToString()
     {
