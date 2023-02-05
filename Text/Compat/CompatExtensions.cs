@@ -1,6 +1,4 @@
-﻿
-
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Jay.Text.Compat;
 
@@ -38,7 +36,17 @@ internal static class CompatExtensions
         return array.AsSpan(offset, length);
     }
 #endif
+
+#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
+    public static ref readonly char GetPinnableReference(this string str)
+    {
+        unsafe
+        {
+            fixed (char* strPtr = str)
+            {
+                return ref Unsafe.AsRef<char>(strPtr);
+            }
+        }
+    }
+#endif
 }
-
-
-

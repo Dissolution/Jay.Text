@@ -106,7 +106,7 @@ public static class TextHelper
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(string source, char[] dest)
+        internal static void CopyTo(string source, Span<char> dest, int sourceLen)
         {
 #if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
             unsafe
@@ -116,14 +116,14 @@ public static class TextHelper
                     CopyBlock(
                         ptr,
                         ref dest.GetPinnableReference(),
-                        source.Length);
+                        sourceLen);
                 }
             }
 #else
             CopyBlock(
                 in source.GetPinnableReference(),
                 ref dest.GetPinnableReference(),
-                source.Length);
+                sourceLen);
 #endif
         }
     }

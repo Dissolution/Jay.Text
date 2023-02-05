@@ -7,6 +7,7 @@ public readonly struct NonFormattableString : IEquatable<string>
 {
     public static implicit operator NonFormattableString(string? str) => new NonFormattableString(str);
     public static implicit operator NonFormattableString(FormattableString _) => throw new InvalidOperationException();
+    public static implicit operator NonFormattableString(ReadOnlySpan<char> _) => throw new InvalidOperationException();
 
     public static bool operator ==(NonFormattableString nfs, string? str) => nfs.Equals(str);
     public static bool operator !=(NonFormattableString nfs, string? str) => !nfs.Equals(str);

@@ -8,43 +8,31 @@ using Jay.Text.Extensions;
 
 namespace Jay.Text;
 
-internal static class BuilderHelper
-{
-    public const int MinimumCapacity = 1024;
-    public const int MaximumCapacity = 0x3FFFFFDF; // == string.MaxLength < Array.MaxLength
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetStartingCapacity(int literalLength, int formattedCount)
-    {
-        return (literalLength + (formattedCount * 16)).Clamp(MinimumCapacity, MaximumCapacity);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetNextCapacity(int currentCapacity, int addingCharCount)
-    {
-        return (currentCapacity + addingCharCount) * 2;
-    }
-}
-
 /// <summary>
 /// A custom minimized implementation of an <c>Interpolated String Handler</c>
 /// </summary>
 #if NET6_0_OR_GREATER
 [InterpolatedStringHandler]
 #endif
-public ref struct CharSpanBuilder
+public ref struct CharSpanWriter
 {
-    /// <summary>Array rented from the array pool and used to back <see cref="_chars"/>.</summary>
+    /// <summary>
+    /// Rented char[] from pool, used to back <see cref="_chars"/>
+    /// </summary>
     private char[]? _charArray;
 
-    /// <summary>The span to write into.</summary>
+    /// <summary>
+    /// The active charspan we're writing to
+    /// </summary>
     private Span<char> _chars;
 
-    /// <summary>Position at which to write the next character.</summary>
+    /// <summary>
+    /// Current position we're writing to
+    /// </summary>
     private int _index;
 
     /// <summary>
-    /// Gets the <c>Span&lt;char&gt;</c> of written characters
+    /// Gets a <c>Span&lt;<see cref="char"/>&gt;</c> of characters written thus far
     /// </summary>
     public Span<char> Written
     {
@@ -53,7 +41,8 @@ public ref struct CharSpanBuilder
     }
 
     /// <summary>
-    /// Gets the <c>Span&lt;char&gt;</c> of available characters
+    /// Gets a <c>Span&lt;<see cref="char"/>&gt;</c> of characters available for writing<br/>
+    /// <b>Caution</b>: If you write to Available, you must also update Length!
     /// </summary>
     public Span<char> Available
     {
@@ -61,6 +50,22 @@ public ref struct CharSpanBuilder
         get => _chars.Slice(_index);
     }
 
+    /// <summary>
+    /// The current total capacity to store <see cref="char"/>acters<br/>
+    /// Will be increased when required during Write operations
+    /// </summary>
+    public int Capacity
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _chars.Length;
+    }
+
+    /// <summary>
+    /// Gets or sets the number of <see cref="char"/>acters written 
+    /// </summary>
+    /// <remarks>
+    /// A set Length will be clamped between 0 and Capacity
+    /// </remarks>
     public int Length
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,44 +74,58 @@ public ref struct CharSpanBuilder
         set => _index = value.Clamp(0, Capacity);
     }
 
-    public int Capacity
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _chars.Length;
-    }
 
-    public CharSpanBuilder()
+    /// <summary>
+    /// Construct a new <see cref="CharSpanWriter"/> with default starting Capacity
+    /// </summary>
+    public CharSpanWriter()
     {
         _chars = _charArray = ArrayPool<char>.Shared.Rent(BuilderHelper.MinimumCapacity);
         _index = 0;
     }
 
-    public CharSpanBuilder(Span<char> initialBuffer)
+    /// <summary>
+    /// Construct a new <see cref="CharSpanWriter"/> with an <paramref name="initialBuffer"/>,<br/>
+    /// which will be discarded if Capacity increases
+    /// </summary>
+    /// <param name="initialBuffer">The initial <c>Span&lt;<see cref="char"/>&gt;</c> to write to</param>
+    public CharSpanWriter(Span<char> initialBuffer)
     {
         _chars = initialBuffer;
         _charArray = null;
         _index = 0;
     }
 
+#if NET6_0_OR_GREATER
+    /// <summary>
+    /// Support for <see cref="InterpolatedStringHandlerAttribute"/>
+    /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CharSpanBuilder(int literalLength, int formattedCount)
+    public CharSpanWriter(int literalLength, int formattedCount)
     {
-        _chars = _charArray =
-            ArrayPool<char>.Shared.Rent(BuilderHelper.GetStartingCapacity(literalLength, formattedCount));
+        _chars = _charArray = ArrayPool<char>.Shared
+            .Rent(BuilderHelper.GetStartingCapacity(literalLength, formattedCount));
         _index = 0;
     }
 
+    /// <summary>
+    /// Support for <see cref="InterpolatedStringHandlerAttribute"/>
+    /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CharSpanBuilder(int literalLength, int formattedCount, Span<char> initialBuffer)
+    public CharSpanWriter(int literalLength, int formattedCount, Span<char> initialBuffer)
     {
         _chars = initialBuffer;
         _charArray = null;
         _index = 0;
     }
+#endif
 
     #region Grow
 
-    /// <summary>Grow the size of <see cref="_chars"/> to at least the specified <paramref name="minCapacity"/>.</summary>
+    /// <summary>
+    /// Grow the size of <see cref="_chars"/> to at least the specified <paramref name="minCapacity"/>.
+    /// </summary>
+    /// <param name="minCapacity">The minimum possible Capacity to grow to</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void GrowCore(int minCapacity)
     {
@@ -128,17 +147,17 @@ public ref struct CharSpanBuilder
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowBy(int addingCharCount)
     {
-        GrowCore(BuilderHelper.GetNextCapacity(Capacity, addingCharCount));
+        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, addingCharCount));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowThenCopy(char ch)
     {
         int index = _index;
-        GrowCore(BuilderHelper.GetNextCapacity(Capacity, 1));
+        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, 1));
         TextHelper.Unsafe.CopyBlock(
             in ch,
-            ref Available.GetPinnableReference(),
+            ref _chars[index],
             1);
         _index = index + 1;
     }
@@ -148,10 +167,10 @@ public ref struct CharSpanBuilder
     {
         int index = _index;
         int len = text.Length;
-        GrowCore(BuilderHelper.GetNextCapacity(Capacity, len));
+        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, len));
         TextHelper.Unsafe.CopyBlock(
             in text.GetPinnableReference(),
-            ref Available.GetPinnableReference(),
+            ref _chars[index],
             len);
         _index = index + len;
     }
@@ -161,8 +180,11 @@ public ref struct CharSpanBuilder
     {
         int index = _index;
         int len = text.Length;
-        GrowCore(BuilderHelper.GetNextCapacity(Capacity, len));
-        TextHelper.Unsafe.CopyTo(text, Available);
+        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, len));
+        TextHelper.Unsafe.CopyBlock(
+            in text.GetPinnableReference(),
+            ref _chars[index],
+            len);
         _index = index + len;
     }
 
@@ -170,17 +192,22 @@ public ref struct CharSpanBuilder
 
     #region Interpolated String Handler implementations
 
-    /// <summary>Writes the specified string to the handler.</summary>
+    /// <summary>
+    /// Append a literal <see cref="string"/>
+    /// </summary>
     /// <param name="text">The string to write.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AppendLiteral(string text)
+    public void AppendLiteral(string? text)
     {
-        if (text.Length == 1)
+        if (text is null) return;
+        int len = text.Length;
+        // Quick implementations for common length 1 and 2 (symbols: [ /\,"' ], [/r/n])
+        if (len == 1)
         {
             int pos = _index;
             Span<char> chars = _chars;
-            if ((uint)pos < (uint)chars.Length)
+            if (pos < chars.Length)
             {
                 chars[pos] = text[0];
                 _index = pos + 1;
@@ -189,15 +216,12 @@ public ref struct CharSpanBuilder
             {
                 GrowThenCopy(text);
             }
-
-            return;
         }
-
-        if (text.Length == 2)
+        else if (len == 2)
         {
             int pos = _index;
             Span<char> chars = _chars;
-            if ((uint)pos < chars.Length - 1)
+            if (pos < chars.Length - 1)
             {
                 chars[pos++] = text[0];
                 chars[pos++] = text[1];
@@ -207,36 +231,37 @@ public ref struct CharSpanBuilder
             {
                 GrowThenCopy(text);
             }
-
-            return;
         }
-
-        Write(text);
+        else
+        {
+            // Prefer Write
+            Write(text);
+        }
     }
 
     /// <summary>Writes the specified value to the handler.</summary>
     /// <param name="value">The value to write.</param>
     /// <typeparam name="T">The type of the value to write.</typeparam>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted<T>(T? value) => Write<T>(value);
+    public void AppendFormatted<T>(T? value) => WriteValue<T>(value);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted<T>(T value, string? format) => Write<T>(value, format);
+    public void AppendFormatted<T>(T value, string? format) => WriteFormat<T>(value, format);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AppendFormatted(char ch) => Write(ch);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(ReadOnlySpan<char> value) => Write(value);
+    public void AppendFormatted(ReadOnlySpan<char> text) => Write(text);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(string? value) => Write(value);
+    public void AppendFormatted(string? text) => Write(text);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(object? obj) => Write<object>(obj);
+    public void AppendFormatted(object? obj) => WriteValue(obj);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(object? value, string? format) => Write<object?>(value, format);
+    public void AppendFormatted(object? value, string? format) => WriteFormat<object?>(value, format);
 
     #endregion
 
@@ -246,7 +271,7 @@ public ref struct CharSpanBuilder
     {
         int pos = _index;
         Span<char> chars = _chars;
-        if ((uint)pos < (uint)chars.Length)
+        if (pos < chars.Length)
         {
             chars[pos] = ch;
             _index = pos + 1;
@@ -275,7 +300,7 @@ public ref struct CharSpanBuilder
     {
         if (text is not null)
         {
-            if (TextHelper.TryCopyTo(text.AsSpan(), Available))
+            if (TextHelper.TryCopyTo(text, Available))
             {
                 _index += text.Length;
             }
@@ -286,7 +311,7 @@ public ref struct CharSpanBuilder
         }
     }
 
-    public void Write<T>(T? value)
+    public void WriteValue<T>(T? value)
     {
         string? str;
         if (value is IFormattable)
@@ -297,12 +322,10 @@ public ref struct CharSpanBuilder
             {
                 int charsWritten;
                 // constrained call avoiding boxing for value types
-                while (!((ISpanFormattable)value).TryFormat(_chars.Slice(_index),
-                    out charsWritten, default, default))
+                while (!((ISpanFormattable)value).TryFormat(Available, out charsWritten, default, default))
                 {
                     GrowBy(BuilderHelper.MinimumCapacity);
                 }
-
                 _index += charsWritten;
                 return;
             }
@@ -319,7 +342,7 @@ public ref struct CharSpanBuilder
         Write(str);
     }
 
-    public void Write<T>(T? value, string? format)
+    public void WriteFormat<T>(T? value, string? format)
     {
         string? str;
         if (value is IFormattable)
@@ -330,12 +353,10 @@ public ref struct CharSpanBuilder
             {
                 int charsWritten;
                 // constrained call avoiding boxing for value types
-                while (!((ISpanFormattable)value).TryFormat(_chars.Slice(_index),
-                    out charsWritten, format, default))
+                while (!((ISpanFormattable)value).TryFormat(Available, out charsWritten, format, default))
                 {
                     GrowBy(BuilderHelper.MinimumCapacity);
                 }
-
                 _index += charsWritten;
                 return;
             }
@@ -355,8 +376,9 @@ public ref struct CharSpanBuilder
     #endregion
 
 
-    /// <summary>Clears the handler, returning any rented array to the pool.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] // used only on a few hot paths
+    /// <summary>
+    /// Returns any rented array to the pool.
+    /// </summary>
     public void Dispose()
     {
         char[]? toReturn = _charArray;
@@ -368,10 +390,10 @@ public ref struct CharSpanBuilder
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override bool Equals(object? obj) => false;
+    public override bool Equals(object? obj) => throw new NotImplementedException();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override int GetHashCode() => 0;
+    public override int GetHashCode() => throw new NotImplementedException();
 
     public string ToStringAndDispose()
     {
@@ -385,7 +407,7 @@ public ref struct CharSpanBuilder
 #if NET48 || NETSTANDARD2_0
         unsafe
         {
-            fixed (char* ptr = Written)
+            fixed (char* ptr = _chars)
             {
                 return new string(ptr, 0, _index);
             }

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿/*using System.Collections;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -153,7 +153,7 @@ public sealed class CodeWriter : IDisposable
 
     public CodeWriter CodeBlock(ref InterpolatedTextBuilderHandler textHandler)
     {
-
+        throw new NotImplementedException();
     }
 
     public CodeWriter CodeBlock(NonFormattableString nonFormattableString)
@@ -524,7 +524,7 @@ public sealed class CodeWriter : IDisposable
     {
         /* Most of the time, this is probably a single line.
          * But we do want to watch out for newline characters to turn
-         * this into a multi-line comment */
+         * this into a multi-line comment #1#
         var lines = comment.AsSpan().SplitLines();
         switch (lines.Count)
         {
@@ -544,7 +544,7 @@ public sealed class CodeWriter : IDisposable
                     Write(" * ").WriteLine(comment.AsSpan(e.Current.start, e.Current.length));
                 }
 
-                return WriteLine(" */");
+                return WriteLine(" #1#");
             }
         }
     }
@@ -576,7 +576,7 @@ public sealed class CodeWriter : IDisposable
                 Write(" * ").WriteLine(comment.AsSpan(e.Current.start, e.Current.length));
             }
 
-            return WriteLine(" */");
+            return WriteLine(" #1#");
         }
 
         return this;
@@ -840,4 +840,4 @@ public sealed class CodeWriter : IDisposable
     {
         return _writer.ToString();
     }
-}
+}*/

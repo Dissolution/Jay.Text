@@ -18,7 +18,7 @@ public static class CharExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAsciiDigit(this char ch) => ch is >= '0' and <= '9';
+    public static bool IsAsciiDigit(this char ch) => (uint)(ch - '0') <= '9' - '0';
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAsciiLetterLower(this char ch) => ch is >= 'a' and <= 'z';

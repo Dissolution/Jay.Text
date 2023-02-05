@@ -166,7 +166,7 @@ public partial class TextBuilder : IList<char>, IReadOnlyList<char>,
     private void GrowThenCopy(string text)
     {
         Grow(text.Length);
-        TextHelper.Unsafe.CopyTo(text, Available);
+        TextHelper.Unsafe.CopyTo(text, Available, text.Length);
         _length += text.Length;
     }
 
