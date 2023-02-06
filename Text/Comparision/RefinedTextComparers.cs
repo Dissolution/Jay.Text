@@ -1,5 +1,4 @@
-﻿#if NET6_0_OR_GREATER
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Jay.Text.Comparision;
 
@@ -13,9 +12,9 @@ public sealed class RefinedTextComparers : TextComparers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryRefine(ref char ch)
     {
-        if (char.IsDigit(ch) || char.IsAsciiLetterUpper(ch))
+        if (char.IsDigit(ch) || ch.IsAsciiLetterUpper())
             return true;
-        if (char.IsAsciiLetterLower(ch))
+        if (ch.IsAsciiLetterLower())
         {
             ch = (char)(ch - TextHelper.UppercaseOffset);
             return true;
@@ -32,10 +31,10 @@ public sealed class RefinedTextComparers : TextComparers
         {
             refinedChar = text[index++];
 
-            if (char.IsDigit(refinedChar) || char.IsAsciiLetterUpper(refinedChar))
+            if (char.IsDigit(refinedChar) || refinedChar.IsAsciiLetterUpper())
                 return true;
 
-            if (char.IsAsciiLetterLower(refinedChar))
+            if (refinedChar.IsAsciiLetterLower())
             {
                 refinedChar = (char)(refinedChar - TextHelper.UppercaseOffset);
                 return true;
@@ -51,7 +50,7 @@ public sealed class RefinedTextComparers : TextComparers
         int x = 0;
         int y = 0;
         while (TryFindNextRefinedChar(xText, ref x, out var xCh) &&
-            TryFindNextRefinedChar(yText, ref y, out var yCh))
+               TryFindNextRefinedChar(yText, ref y, out var yCh))
         {
             if (xCh != yCh) return false;
         }
@@ -60,7 +59,7 @@ public sealed class RefinedTextComparers : TextComparers
         return true;
     }
 
-    public int GetHashCode(char ch)
+    public override int GetHashCode(char ch)
     {
         char c = ch;
         if (TryRefine(ref c))
@@ -68,6 +67,7 @@ public sealed class RefinedTextComparers : TextComparers
         return 0;
     }
 
+#if NET6_0_OR_GREATER || NETSTANDARD2_1
     public override int GetHashCode(ReadOnlySpan<char> text)
     {
         var hasher = new HashCode();
@@ -79,16 +79,30 @@ public sealed class RefinedTextComparers : TextComparers
                 hasher.Add(c);
             }
         }
-
         return hasher.ToHashCode();
     }
+#else
+    public override int GetHashCode(ReadOnlySpan<char> text)
+    {
+        int hash = 17;
+        for (var i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (TryRefine(ref c))
+            {
+                hash = unchecked((hash * 31) + (int)c);
+            }
+        }
+        return hash;
+    }
+#endif
 
     public override int Compare(ReadOnlySpan<char> xText, ReadOnlySpan<char> yText)
     {
         int x = 0;
         int y = 0;
         while (TryFindNextRefinedChar(xText, ref x, out var xCh) &&
-            TryFindNextRefinedChar(yText, ref y, out var yCh))
+               TryFindNextRefinedChar(yText, ref y, out var yCh))
         {
             var c = xCh.CompareTo(yCh);
             if (c != 0)
@@ -99,4 +113,3 @@ public sealed class RefinedTextComparers : TextComparers
         return 0;
     }
 }
-#endif

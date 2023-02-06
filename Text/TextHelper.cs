@@ -305,6 +305,7 @@ public static class TextHelper
     #endregion
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AsString(this ReadOnlySpan<char> text)
     {
 #if NET48 || NETSTANDARD2_0

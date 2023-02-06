@@ -143,7 +143,7 @@ namespace Jay.Text.Building
         }
 
 #else
-        internal TextWriter WriteFormatChunk(ReadOnlySpan<char> format, ReadOnlySpan<object?> args)
+        internal void WriteFormatChunk(ReadOnlySpan<char> format, ReadOnlySpan<object?> args)
         {
             // Undocumented exclusive limits on the range for Argument Hole Index
             const int IndexLimit = 1_000_000; // Note:            0 <= ArgIndex < IndexLimit
@@ -160,7 +160,7 @@ namespace Jay.Text.Building
                     // Find the next brace.  If there isn't one, the remainder of the input is text to be appended, and we're done.
                     if (pos >= format.Length)
                     {
-                        return this;
+                        return;
                     }
 
                     ReadOnlySpan<char> remainder = format.Slice(pos);
@@ -168,7 +168,7 @@ namespace Jay.Text.Building
                     if (countUntilNextBrace < 0)
                     {
                         _writer.Write(remainder);
-                        return this;
+                        return;
                     }
 
                     // Append the text until the brace.

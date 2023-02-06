@@ -1,12 +1,10 @@
-﻿#if NET6_0_OR_GREATER
-
-namespace Jay.Text.Comparision;
+﻿namespace Jay.Text.Comparision;
 
 /// <inheritdoc />
 /// <summary>
 /// Compares two strings by using logical numeric and character order.
 /// </summary>
-public class AlphanumericTextComparer : ITextComparer
+public class AlphanumericTextComparer : TextComparer
 {
     public static AlphanumericTextComparer Instance { get; } = new AlphanumericTextComparer();
 
@@ -14,15 +12,15 @@ public class AlphanumericTextComparer : ITextComparer
     private readonly TextOrder _textOrder;
 
     public AlphanumericTextComparer(StringComparison stringComparison = StringComparison.CurrentCulture,
-                                    TextOrder textOrder = TextOrder.LeftToRight)
+        TextOrder textOrder = TextOrder.LeftToRight)
     {
         _stringComparison = stringComparison;
         _textOrder = textOrder;
     }
 
     private static int FrontToBlackCompare(ReadOnlySpan<char> left,
-                                           ReadOnlySpan<char> right,
-                                           StringComparison comparison)
+        ReadOnlySpan<char> right,
+        StringComparison comparison)
     {
         int l = 0;
         int leftLength = left.Length;
@@ -35,7 +33,7 @@ public class AlphanumericTextComparer : ITextComparer
         while (l < leftLength || r < rightLength)
         {
             if (l >= leftLength) return -1; // Left ran out, right is longer
-            if (r >= rightLength) return 1;  // Right ran out, left is longer
+            if (r >= rightLength) return 1; // Right ran out, left is longer
 
             // Get left chunk (grouped based on Digits / NonDigits
             bool leftChunkDigit = char.IsDigit(left[l]);
@@ -57,8 +55,13 @@ public class AlphanumericTextComparer : ITextComparer
 
             // If they are both digit chunks, compare them
             if (leftChunkDigit && rightChunkDigit &&
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
                 int.TryParse(leftChunk, out int leftChunkValue) &&
                 int.TryParse(rightChunk, out int rightChunkValue))
+#else
+                int.TryParse(leftChunk.AsString(), out int leftChunkValue) &&
+                int.TryParse(rightChunk.AsString(), out int rightChunkValue))
+#endif
             {
                 if (leftChunkValue < rightChunkValue)
                     result = -1;
@@ -81,8 +84,8 @@ public class AlphanumericTextComparer : ITextComparer
     }
 
     private static int BackToFrontCompare(ReadOnlySpan<char> left,
-                                          ReadOnlySpan<char> right,
-                                          StringComparison comparison)
+        ReadOnlySpan<char> right,
+        StringComparison comparison)
     {
         int l = left.Length - 1;
 
@@ -115,8 +118,13 @@ public class AlphanumericTextComparer : ITextComparer
 
             // If they are both digit chunks, compare them
             if (leftChunkDigit && rightChunkDigit &&
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
                 int.TryParse(leftChunk, out int leftChunkValue) &&
                 int.TryParse(rightChunk, out int rightChunkValue))
+#else
+                int.TryParse(leftChunk.AsString(), out int leftChunkValue) &&
+                int.TryParse(rightChunk.AsString(), out int rightChunkValue))
+#endif
             {
                 if (leftChunkValue < rightChunkValue)
                     result = -1;
@@ -138,11 +146,10 @@ public class AlphanumericTextComparer : ITextComparer
         return 0;
     }
 
-    public int Compare(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
+    public override int Compare(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
     {
         if (_textOrder == TextOrder.LeftToRight)
             return FrontToBlackCompare(x, y, _stringComparison);
         return BackToFrontCompare(x, y, _stringComparison);
     }
 }
-#endif

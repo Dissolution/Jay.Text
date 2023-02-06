@@ -19,18 +19,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="BlueJay.ico" />
+        <Content Include="BlueJay.ico" />
     </ItemGroup>
 
     <ItemGroup>
-      <None Include="..\BlueJay.png">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-      </None>
-      <None Include="..\README.md">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-      </None>
+        <None Include="..\BlueJay.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -72,9 +72,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Using Include="System" />
-      <Using Include="System.Collections.Generic" />
-      <Using Include="System.Linq" />
+        <Using Include="System" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Linq" />
+        <Using Include="Jay.Text.Extensions" />
     </ItemGroup>
 
 </Project>
