@@ -17,7 +17,6 @@ namespace Jay.Text.Building
     public sealed class TextWriter : IDisposable
     {
         private readonly string _defaultNewLine = Environment.NewLine;
-        private const string _defaultIndent = "    "; // 4 spaces, suck-it tabs :-P
 
         private readonly CharArrayWriter _writer;
         private string _newLineIndent;
@@ -414,30 +413,23 @@ namespace Jay.Text.Building
                 }
                 case string str:
                 {
-                    return Write(str);
+                    _writer.Write(str);
+                    return this;
                 }
                 case IFormattable formattable:
                 {
-                    return Write(formattable.ToString(format, default));
+                    _writer.WriteFormat(formattable, format);
+                    return this;
                 }
                 case IEnumerable enumerable:
                 {
-                    if (!string.IsNullOrEmpty(format))
-                    {
-                        return Delimit(format!, enumerable.Cast<object?>(), static (w, v) => w.WriteValue<object?>(v));
-                    }
-                    else
-                    {
-                        return Enumerate(enumerable.Cast<object?>(), static (w, v) => w.WriteValue<object?>(v));
-                    }
+                    format ??= ",";
+                    return Delimit(format, enumerable.Cast<object?>(), static (w, v) => w._writer.WriteValue<object?>(v));
                 }
                 default:
                 {
-                    var tType = typeof(T);
-                    var valueType = value?.GetType();
-
-                    Debugger.Break();
-                    return Write(value?.ToString());
+                    _writer.Write(value?.ToString());
+                    return this;
                 }
             }
         }
@@ -458,7 +450,7 @@ namespace Jay.Text.Building
             _newLineIndent = newIndent;
             indentBlock(this);
             _newLineIndent = oldIndent;
-            // Did we do a nl that we need to decrease?
+            // Did we do a newline that we need to decrease?
             if (_writer.Written.EndsWith(newIndent.AsSpan()))
             {
                 _writer.Length -= newIndent.Length;
@@ -494,10 +486,11 @@ namespace Jay.Text.Building
                 using var e = values.GetEnumerator();
                 if (!e.MoveNext()) return this;
                 int i = 0;
-                perValueIndex(this, e.Current, i++);
+                perValueIndex(this, e.Current, i);
                 while (e.MoveNext())
                 {
-                    perValueIndex(this, e.Current, i++);
+                    i++;
+                    perValueIndex(this, e.Current, i);
                 }
             }
 
@@ -567,8 +560,9 @@ namespace Jay.Text.Building
                 perValueIndex(this, e.Current, i);
                 while (e.MoveNext())
                 {
+                    i++;
                     delimit(this);
-                    perValueIndex(this, e.Current, ++i);
+                    perValueIndex(this, e.Current, i);
                 }
             }
 

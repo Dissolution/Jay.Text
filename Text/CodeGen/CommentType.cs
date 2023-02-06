@@ -23,10 +23,11 @@ public enum CommentType
     MultiLine,
 
     /// <summary>
-    /// <c>/// comment</c><br/>
-    /// <i>or</i><br/>
-    /// <c>/// comment 1<br/>
-    ///    /// comment 2<br/>
+    /// <c>/// comment</c><br />
+    /// <i>or</i><br />
+    /// <c>
+    /// /// comment 1<br />
+    /// /// comment 2<br />
     /// </c>
     /// </summary>
     XML,
