@@ -1,4 +1,4 @@
-﻿namespace Jay.Text.Transformation;
+﻿/*namespace Jay.Text.Transformation;
 
 /// <summary>
 /// Utility for transforming <see cref="string"/>s via unicode substitution.
@@ -238,7 +238,7 @@ public static class UnicodeTransformer
         //Finished
         return sb.ToString();
     }
-    */
+    #1#
 
     /// <summary>
     /// Transform this <see cref="string"/> using Unicode Full Width.
@@ -266,4 +266,4 @@ public static class UnicodeTransformer
         //Finished
         return text.ToString();
     }
-}
+}*/

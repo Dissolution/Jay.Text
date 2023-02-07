@@ -358,7 +358,7 @@ public ref struct CharSpanReader
 
     public override string ToString()
     {
-        var builder = new CharSpanWriter();
+        var builder = new CharSpanBuilder();
         builder.Write(Read);
         builder.Write("|");
         builder.Write(Available);

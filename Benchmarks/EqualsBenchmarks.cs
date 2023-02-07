@@ -5,11 +5,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-
 using static InlineIL.IL;
 // ReSharper disable EntityNameCapturedOnly.Local
 
-namespace Benchmarks;
+namespace Jay.Text.Benchmarks;
 
 [ShortRunJob]
 public class EqualsBenchmarks
@@ -81,22 +80,32 @@ public class EqualsBenchmarks
     }
 
     [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
-    private unsafe static extern int memcmp(byte* b1, byte* b2, nuint count);
+    private static extern unsafe int memcmp(byte* b1, byte* b2, nuint count);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe static byte* AsBytePointer(ReadOnlySpan<char> text)
+    private static unsafe byte* AsBytePointer(ReadOnlySpan<char> text)
     {
         Emit.Ldarg(nameof(text));
+        return ReturnPointer<byte>();
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe byte* AsBytePointer(in char ch)
+    {
+        Emit.Ldarg(nameof(ch));
         return ReturnPointer<byte>();
     }
 
     [Benchmark]
     public unsafe bool MemCmp()
     {
-        ReadOnlySpan<char> a = A.AsSpan();
-        ReadOnlySpan<char> b = B.AsSpan();
-        if (a.Length != b.Length) return false;
-        return memcmp(AsBytePointer(a), AsBytePointer(b), (nuint)(a.Length * 2)) == 0;
+        if (A is null) return B is null;
+        if (B is null) return false;
+        fixed (char* aPtr = A)
+        fixed (char* bPtr = B)
+        {
+            return memcmp((byte*)aPtr, (byte*)bPtr, (uint)(A.Length * sizeof(char))) == 1;
+        }
     }
 
     [Benchmark]

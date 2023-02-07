@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Jay.Text.Compat;
-using Jay.Text.Extensions;
 
 // ReSharper disable UnusedParameter.Local
 
@@ -14,7 +13,7 @@ namespace Jay.Text;
 #if NET6_0_OR_GREATER
 [InterpolatedStringHandler]
 #endif
-public ref struct CharSpanWriter
+public ref struct CharSpanBuilder
 {
     /// <summary>
     /// Rented char[] from pool, used to back <see cref="_chars"/>
@@ -76,20 +75,20 @@ public ref struct CharSpanWriter
 
 
     /// <summary>
-    /// Construct a new <see cref="CharSpanWriter"/> with default starting Capacity
+    /// Construct a new <see cref="CharSpanBuilder"/> with default starting Capacity
     /// </summary>
-    public CharSpanWriter()
+    public CharSpanBuilder()
     {
         _chars = _charArray = ArrayPool<char>.Shared.Rent(BuilderHelper.MinimumCapacity);
         _index = 0;
     }
 
     /// <summary>
-    /// Construct a new <see cref="CharSpanWriter"/> with an <paramref name="initialBuffer"/>,<br/>
+    /// Construct a new <see cref="CharSpanBuilder"/> with an <paramref name="initialBuffer"/>,<br/>
     /// which will be discarded if Capacity increases
     /// </summary>
     /// <param name="initialBuffer">The initial <c>Span&lt;<see cref="char"/>&gt;</c> to write to</param>
-    public CharSpanWriter(Span<char> initialBuffer)
+    public CharSpanBuilder(Span<char> initialBuffer)
     {
         _chars = initialBuffer;
         _charArray = null;
@@ -101,7 +100,7 @@ public ref struct CharSpanWriter
     /// Support for <see cref="InterpolatedStringHandlerAttribute"/>
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CharSpanWriter(int literalLength, int formattedCount)
+    public CharSpanBuilder(int literalLength, int formattedCount)
     {
         _chars = _charArray = ArrayPool<char>.Shared
             .Rent(BuilderHelper.GetStartingCapacity(literalLength, formattedCount));
@@ -112,7 +111,7 @@ public ref struct CharSpanWriter
     /// Support for <see cref="InterpolatedStringHandlerAttribute"/>
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CharSpanWriter(int literalLength, int formattedCount, Span<char> initialBuffer)
+    public CharSpanBuilder(int literalLength, int formattedCount, Span<char> initialBuffer)
     {
         _chars = initialBuffer;
         _charArray = null;
@@ -120,8 +119,7 @@ public ref struct CharSpanWriter
     }
 #endif
 
-    #region Grow
-
+#region Grow
     /// <summary>
     /// Grow the size of <see cref="_chars"/> to at least the specified <paramref name="minCapacity"/>.
     /// </summary>
@@ -187,11 +185,9 @@ public ref struct CharSpanWriter
             len);
         _index = index + len;
     }
+#endregion
 
-    #endregion
-
-    #region Interpolated String Handler implementations
-
+#region Interpolated String Handler implementations
     /// <summary>
     /// Append a literal <see cref="string"/>
     /// </summary>
@@ -243,10 +239,10 @@ public ref struct CharSpanWriter
     /// <param name="value">The value to write.</param>
     /// <typeparam name="T">The type of the value to write.</typeparam>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted<T>(T? value) => WriteValue<T>(value);
+    public void AppendFormatted<T>(T? value) => Write<T>(value);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted<T>(T value, string? format) => WriteFormat<T>(value, format);
+    public void AppendFormatted<T>(T value, string? format) => Format<T>(value, format);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AppendFormatted(char ch) => Write(ch);
@@ -258,15 +254,13 @@ public ref struct CharSpanWriter
     public void AppendFormatted(string? text) => Write(text);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(object? obj) => WriteValue(obj);
+    public void AppendFormatted(object? obj) => Write(obj);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(object? value, string? format) => WriteFormat<object?>(value, format);
+    public void AppendFormatted(object? value, string? format) => Format<object?>(value, format);
+#endregion
 
-    #endregion
-
-    #region Write
-
+#region Write
     public void Write(char ch)
     {
         int pos = _index;
@@ -311,7 +305,7 @@ public ref struct CharSpanWriter
         }
     }
 
-    public void WriteValue<T>(T? value)
+    public void Write<T>(T? value)
     {
         string? str;
         if (value is IFormattable)
@@ -342,7 +336,7 @@ public ref struct CharSpanWriter
         Write(str);
     }
 
-    public void WriteFormat<T>(T? value, string? format)
+    public void Format<T>(T? value, string? format)
     {
         string? str;
         if (value is IFormattable)
@@ -372,8 +366,7 @@ public ref struct CharSpanWriter
 
         Write(str);
     }
-
-    #endregion
+#endregion
 
 
     /// <summary>
@@ -404,16 +397,6 @@ public ref struct CharSpanWriter
 
     public override string ToString()
     {
-#if NET48 || NETSTANDARD2_0
-        unsafe
-        {
-            fixed (char* ptr = _chars)
-            {
-                return new string(ptr, 0, _index);
-            }
-        }
-#else
-        return new string(Written);
-#endif
+        return Written.AsString();
     }
 }

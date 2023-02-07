@@ -159,6 +159,17 @@ public static class TextHelper
         }
     }
 
+    internal static bool TryCopyTo(ReadOnlySpan<char> source, Span<char> dest, int sourceLen)
+    {
+        if (sourceLen == 0) return true;
+        if (sourceLen > dest.Length) return false;
+        Unsafe.CopyBlock(
+            in source.GetPinnableReference(),
+            ref dest.GetPinnableReference(),
+            sourceLen);
+        return true;
+    }
+    
     public static bool TryCopyTo(ReadOnlySpan<char> source, Span<char> dest)
     {
         var len = source.Length;
@@ -171,6 +182,24 @@ public static class TextHelper
         return true;
     }
 
+    internal static bool TryCopyTo(string source, Span<char> dest, int sourceLen)
+    {
+        if (sourceLen == 0) return true;
+        if (sourceLen > dest.Length) return false;
+        unsafe
+        {
+            fixed (char* sourcePtr = source)
+            {
+                Unsafe.CopyBlock(
+                    sourcePtr,
+                    ref dest.GetPinnableReference(),
+                    sourceLen);
+            }
+        }
+
+        return true;
+    }
+    
     public static bool TryCopyTo(string? source, Span<char> dest)
     {
         if (source is null) return true;

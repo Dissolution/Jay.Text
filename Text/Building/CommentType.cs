@@ -1,4 +1,4 @@
-﻿namespace Jay.Text.CodeGen;
+﻿namespace Jay.Text;
 
 public enum CommentType
 {

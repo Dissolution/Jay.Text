@@ -1,24 +1,43 @@
 ﻿using System.Buffers;
+using System.Collections;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Jay.Text.Compat;
-using Jay.Text.Extensions;
-
-// ReSharper disable UnusedParameter.Local
 
 namespace Jay.Text;
 
-public sealed class CharArrayWriter : IDisposable
+public class CharArrayBuilder :
+    IList<char>, IReadOnlyList<char>,
+    ICollection<char>, IReadOnlyCollection<char>,
+    IEnumerable<char>,
+#if NET6_0_OR_GREATER
+    ISpanFormattable,
+#endif
+    IDisposable
 {
+    protected static readonly string DefaultNewLine = Environment.NewLine;
+
     /// <summary>
     /// Rented char[] from pool
     /// </summary>
     private char[]? _charArray;
-    
+
     /// <summary>
     /// Current position we're writing to
     /// </summary>
     private int _index;
+
+    int ICollection<char>.Count => _index;
+
+    int IReadOnlyCollection<char>.Count => _index;
+
+    bool ICollection<char>.IsReadOnly => false;
+
+    public char this[int index]
+    {
+        get => Written[index];
+        set => Written[index] = value;
+    }
 
     /// <summary>
     /// Gets a <c>Span&lt;<see cref="char"/>&gt;</c> of characters written thus far
@@ -63,19 +82,13 @@ public sealed class CharArrayWriter : IDisposable
         set => _index = value.Clamp(0, Capacity);
     }
 
-
-    /// <summary>
-    /// Construct a new <see cref="CharSpanWriter"/> with default starting Capacity
-    /// </summary>
-    public CharArrayWriter()
+    protected CharArrayBuilder()
     {
         _charArray = ArrayPool<char>.Shared.Rent(BuilderHelper.MinimumCapacity);
         _index = 0;
     }
 
-
-    #region Grow
-
+#region Grow
     /// <summary>
     /// Grow the size of <see cref="_charArray"/> to at least the specified <paramref name="minCapacity"/>.
     /// </summary>
@@ -141,12 +154,11 @@ public sealed class CharArrayWriter : IDisposable
             len);
         _index = index + len;
     }
+#endregion
 
-    #endregion
 
-    #region Write
-
-    public void Write(char ch)
+#region Write
+    protected void AppendChar(char ch)
     {
         int pos = _index;
         Span<char> chars = _charArray;
@@ -161,11 +173,12 @@ public sealed class CharArrayWriter : IDisposable
         }
     }
 
-    public void Write(ReadOnlySpan<char> text)
+    protected void AppendCharSpan(ReadOnlySpan<char> text)
     {
-        if (text.TryCopyTo(Available))
+        int len = text.Length;
+        if (TextHelper.TryCopyTo(text, Available, len))
         {
-            _index += text.Length;
+            _index += len;
         }
         else
         {
@@ -173,15 +186,14 @@ public sealed class CharArrayWriter : IDisposable
         }
     }
 
-    public void Write(params char[] chars) => Write(chars.AsSpan());
-
-    public void Write(string? text)
+    protected void AppendString(string? text)
     {
         if (text is not null)
         {
-            if (TextHelper.TryCopyTo(text, Available))
+            int len = text.Length;
+            if (TextHelper.TryCopyTo(text, Available, len))
             {
-                _index += text.Length;
+                _index += len;
             }
             else
             {
@@ -190,8 +202,23 @@ public sealed class CharArrayWriter : IDisposable
         }
     }
 
-    public void WriteValue<T>(T? value)
+    protected void AppendNonNullString(string text)
     {
+        int len = text.Length;
+        if (TextHelper.TryCopyTo(text, Available, len))
+        {
+            _index += len;
+        }
+        else
+        {
+            GrowThenCopy(text);
+        }
+    }
+
+    protected void AppendValue<T>(T? value)
+    {
+        if (value is null) return;
+
         string? str;
         if (value is IFormattable)
         {
@@ -215,14 +242,24 @@ public sealed class CharArrayWriter : IDisposable
         }
         else
         {
-            str = value?.ToString();
+            str = value.ToString();
         }
-
-        Write(str);
+        if (str is null) return;
+        int len = str.Length;
+        if (TextHelper.TryCopyTo(str, Available, len))
+        {
+            _index += len;
+        }
+        else
+        {
+            GrowThenCopy(str);
+        }
     }
 
-    public void WriteFormat<T>(T? value, string? format)
+    protected void AppendFormat<T>(T? value, string? format)
     {
+        if (value is null) return;
+
         string? str;
         if (value is IFormattable)
         {
@@ -246,19 +283,140 @@ public sealed class CharArrayWriter : IDisposable
         }
         else
         {
-            str = value?.ToString();
+            str = value.ToString();
         }
 
-        Write(str);
+        if (str is null) return;
+        int len = str.Length;
+        if (TextHelper.TryCopyTo(str, Available, len))
+        {
+            _index += len;
+        }
+        else
+        {
+            GrowThenCopy(str);
+        }
+    }
+#endregion
+
+    public void EnsureCapacityToAdd(int adding)
+    {
+        if (adding > 0)
+        {
+            var newCapacity = _index + adding;
+            if (newCapacity > Capacity)
+            {
+                GrowBy(adding);
+            }
+        }
     }
 
-    #endregion
+    public void RemoveAt(int index)
+    {
+        if ((uint)index >= (uint)_index)
+            throw new IndexOutOfRangeException();
+        Written.Slice(index + 1).CopyTo(Written.Slice(index));
+        _index--;
+    }
 
+    // Trim Methods
+
+    public void Clear()
+    {
+        _index = 0;
+    }
+
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = default)
+    {
+        if (_index <= destination.Length)
+        {
+            TextHelper.Unsafe.CopyBlock(
+                in _charArray!.GetPinnableReference(),
+                ref destination.GetPinnableReference(),
+                _index);
+            charsWritten = _index;
+            return true;
+        }
+        charsWritten = 0;
+        return false;
+    }
+
+
+#region Interface Implementations
+    void ICollection<char>.Add(char ch)
+    {
+        AppendChar(ch);
+    }
+    void IList<char>.Insert(int index, char ch)
+    {
+        Validate.Insert(_index, index);
+        EnsureCapacityToAdd(1);
+        Written.Slice(index).CopyTo(Written.Slice(index + 1));
+        Written[index] = ch;
+        _index++;
+    }
+    bool ICollection<char>.Remove(char ch)
+    {
+        int i = Written.IndexOf(ch);
+        if (i >= 0)
+        {
+            RemoveAt(i);
+            return true;
+        }
+        return false;
+    }
+
+    bool ICollection<char>.Contains(char ch)
+    {
+        for (var i = 0; i < _index; i++)
+        {
+            if (_charArray![i] == ch)
+                return true;
+        }
+        return false;
+    }
+    int IList<char>.IndexOf(char ch)
+    {
+        for (var i = 0; i < _index; i++)
+        {
+            if (_charArray![i] == ch)
+                return i;
+        }
+        return -1;
+    }
+
+    void ICollection<char>.CopyTo(char[] array, int arrayIndex)
+    {
+        Validate.Index(array.Length, arrayIndex);
+        if (arrayIndex + _index > array.Length)
+            throw new ArgumentException("Cannot contain text", nameof(array));
+        Written.CopyTo(array.AsSpan(arrayIndex));
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        var chars = _charArray!;
+        var len = _index;
+        for (var i = 0; i < len; i++)
+        {
+            yield return chars[i];
+        }
+    }
+    IEnumerator<char> IEnumerable<char>.GetEnumerator()
+    {
+        var chars = _charArray!;
+        var len = _index;
+        for (var i = 0; i < len; i++)
+        {
+            yield return chars[i];
+        }
+    }
+#endregion
 
     /// <summary>
     /// Returns any rented array to the pool.
     /// </summary>
-    public void Dispose()
+    public virtual void Dispose()
     {
         char[]? toReturn = _charArray;
         _charArray = null;
@@ -281,18 +439,13 @@ public sealed class CharArrayWriter : IDisposable
         return result;
     }
 
-    public override string ToString()
+#if NET6_0_OR_GREATER
+    string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
     {
-#if NET48 || NETSTANDARD2_0
-        unsafe
-        {
-            fixed (char* ptr = _charArray)
-            {
-                return new string(ptr, 0, _index);
-            }
-        }
-#else
-        return new string(Written);
-#endif
+        return ToString();
     }
+#endif
+
+    public override string ToString() => Written.AsString();
 }
+
