@@ -57,7 +57,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
 #endif
                 return buffer.AsString();
             }
@@ -68,7 +68,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
 #endif
                 return buffer.AsString();
             }
@@ -85,7 +85,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2));
 #endif
                 return buffer.AsString();
             }
@@ -138,7 +138,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
 #endif
                 return buffer.AsString();
             }
@@ -149,7 +149,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
 #endif
                 return buffer.AsString();
             }
@@ -166,7 +166,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2));
 #endif
                 return buffer.AsString();
             }

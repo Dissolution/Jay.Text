@@ -268,6 +268,24 @@ public ref struct CharSpanReader
         _index = i;
         return _text[start..i];
     }
+    
+    public ReadOnlySpan<char> TakeUntil(char firstMatch, char secondMatch)
+    {
+        var text = _text;
+        var i = _index;
+        var start = i;
+        var capacity = Length;
+        char ch;
+        while (i < capacity)
+        {
+            ch = text[i];
+            if (ch == firstMatch || ch == secondMatch)
+                break;
+            i++;
+        }
+        _index = i;
+        return text[start..i];
+    }
 
     public void SkipUntil(Func<char, bool> predicate)
     {

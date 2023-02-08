@@ -1,5 +1,6 @@
 ﻿namespace Jay.Text;
 
+// ReSharper disable once InconsistentNaming
 public delegate void CBA(CodeBuilder builder);
 
 public delegate void TextBuilderAction<in TBuilder>(TBuilder builder)

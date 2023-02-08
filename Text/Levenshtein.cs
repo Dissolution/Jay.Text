@@ -90,7 +90,7 @@ public static class Levenshtein
         if (a is null && b is null)
             return 0;
         if (a is null) return b!.Length;
-        if (b is null) return a!.Length;
+        if (b is null) return a.Length;
 
         if (a.Length <= b.Length)
             return CalculateImpl(a.AsSpan(), b.AsSpan(), maximumDistance);

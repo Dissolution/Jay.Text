@@ -6,12 +6,12 @@ using Jay.Text.Compat;
 
 namespace Jay.Text;
 
-public class CharArrayBuilder :
+public abstract class CharArrayBuilderBase :
     IList<char>, IReadOnlyList<char>,
     ICollection<char>, IReadOnlyCollection<char>,
-    IEnumerable<char>,
+    IEnumerable<char>, IEnumerable,
 #if NET6_0_OR_GREATER
-    ISpanFormattable,
+    ISpanFormattable, IFormattable,
 #endif
     IDisposable
 {
@@ -27,10 +27,11 @@ public class CharArrayBuilder :
     /// </summary>
     private int _index;
 
+    /// <inheritdoc cref="ICollection{T}"/>
     int ICollection<char>.Count => _index;
-
+    /// <inheritdoc cref="IReadOnlyCollection{T}"/>
     int IReadOnlyCollection<char>.Count => _index;
-
+    /// <inheritdoc cref="ICollection{T}"/>
     bool ICollection<char>.IsReadOnly => false;
 
     public char this[int index]
@@ -82,7 +83,7 @@ public class CharArrayBuilder :
         set => _index = value.Clamp(0, Capacity);
     }
 
-    protected CharArrayBuilder()
+    protected CharArrayBuilderBase()
     {
         _charArray = ArrayPool<char>.Shared.Rent(BuilderHelper.MinimumCapacity);
         _index = 0;
@@ -242,7 +243,7 @@ public class CharArrayBuilder :
         }
         else
         {
-            str = value.ToString();
+            str = value?.ToString();
         }
         if (str is null) return;
         int len = str.Length;
@@ -283,7 +284,7 @@ public class CharArrayBuilder :
         }
         else
         {
-            str = value.ToString();
+            str = value?.ToString();
         }
 
         if (str is null) return;
@@ -320,6 +321,19 @@ public class CharArrayBuilder :
     }
 
     // Trim Methods
+    public void TrimEnd()
+    {
+        var written = Written;
+        for (var i = written.Length - 1; i >= 0; i--)
+        {
+            if (!char.IsWhiteSpace(written[i]))
+            {
+                this.Length = (i + 1);
+                return;
+            }
+        }
+        this.Length = 0;
+    }
 
     public void Clear()
     {
@@ -440,10 +454,7 @@ public class CharArrayBuilder :
     }
 
 #if NET6_0_OR_GREATER
-    string IFormattable.ToString(string? format, IFormatProvider? formatProvider)
-    {
-        return ToString();
-    }
+    string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToString();
 #endif
 
     public override string ToString() => Written.AsString();

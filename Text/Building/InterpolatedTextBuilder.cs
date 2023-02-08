@@ -35,7 +35,7 @@ public ref struct InterpolatedTextBuilder<TBuilder>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendFormatted<T>(T value, string? format)
     {
-        _builder.Format<T>(value, format);
+        _builder.Write<T>(value, format);
     }
 
     public override bool Equals(object? obj) => throw new NotSupportedException();

@@ -4,6 +4,7 @@ internal sealed class StringComparisonTextComparers : TextComparers
 {
     private readonly StringComparison _stringComparison;
 
+#if !NET6_0_OR_GREATER
     private StringComparer GetStringComparer()
     {
         return _stringComparison switch
@@ -17,6 +18,7 @@ internal sealed class StringComparisonTextComparers : TextComparers
             _ => StringComparer.CurrentCulture
         };
     }
+#endif
 
     public StringComparisonTextComparers(StringComparison stringComparison)
     {
@@ -43,26 +45,26 @@ internal sealed class StringComparisonTextComparers : TextComparers
         return MemoryExtensions.Equals(x, y, _stringComparison);
     }
 
-    #if NETSTANDARD2_1 || NET6_0_OR_GREATER
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
     public override int GetHashCode(string? str)
     {
         if (str is null) return 0;
         return str.GetHashCode(_stringComparison);
     }
-    #else
+#else
     public override int GetHashCode(string? str)
     {
         if (str is null) return 0;
         return GetStringComparer().GetHashCode(str);
     }
-    #endif
+#endif
 
-    #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
     public override int GetHashCode(ReadOnlySpan<char> span)
     {
         return string.GetHashCode(span, _stringComparison);
     }
-    #else
+#else
     public override int GetHashCode(ReadOnlySpan<char> span)
     {
         return GetStringComparer().GetHashCode(span.AsString());

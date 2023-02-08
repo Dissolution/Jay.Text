@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using InlineIL;
-using Jay.Text.Extensions;
 
 // ReSharper disable InvokeAsExtensionMethod
 // ^ I want to be sure I'm calling the very specific version of a method
@@ -49,7 +48,7 @@ public static class TextHelper
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(ReadOnlySpan<char> source, Span<char> dest)
+        internal static void CopyBlock(ReadOnlySpan<char> source, Span<char> dest)
         {
             CopyBlock(
                 in source.GetPinnableReference(),
@@ -58,7 +57,7 @@ public static class TextHelper
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(ReadOnlySpan<char> source, char[] dest)
+        internal static void CopyBlock(ReadOnlySpan<char> source, char[] dest)
         {
             CopyBlock(
                 in source.GetPinnableReference(),
@@ -67,7 +66,7 @@ public static class TextHelper
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(char[] source, Span<char> dest)
+        internal static void CopyBlock(char[] source, Span<char> dest)
         {
             CopyBlock(
                 in source.GetPinnableReference(),
@@ -76,7 +75,7 @@ public static class TextHelper
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(char[] source, char[] dest)
+        internal static void CopyBlock(char[] source, char[] dest)
         {
             CopyBlock(in source.GetPinnableReference(),
                 ref dest.GetPinnableReference(),
@@ -84,7 +83,7 @@ public static class TextHelper
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(string source, Span<char> dest)
+        internal static void CopyBlock(string source, Span<char> dest)
         {
 #if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
             unsafe
@@ -106,7 +105,7 @@ public static class TextHelper
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyTo(string source, Span<char> dest, int sourceLen)
+        internal static void CopyBlock(string source, Span<char> dest, int sourceLen)
         {
 #if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
             unsafe
