@@ -8,7 +8,7 @@ using static InlineIL.IL;
 namespace Benchmarks;
 //https://benchmarkdotnet.org/articles/features/parameterization.html
 
-public class AppendBenchmarks
+public class TextCopyBenchmarks
 {
     private char[] _array;
     private int _length;
@@ -17,7 +17,7 @@ public class AppendBenchmarks
 
     public IEnumerable<string?> TestStrings => _testStrings;
 
-    public AppendBenchmarks()
+    public TextCopyBenchmarks()
     {
         _array = new char[1024];
         _length = 0;
@@ -31,17 +31,7 @@ public class AppendBenchmarks
         };
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Copy<T>(in T source, ref T dest, int itemCount)
-        where T : unmanaged
-    {
-        Emit.Ldarg(nameof(dest));
-        Emit.Ldarg(nameof(source));
-        Emit.Ldarg(nameof(itemCount));
-        Emit.Sizeof<T>();
-        Emit.Mul();
-        Emit.Cpblk();
-    }
+   
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

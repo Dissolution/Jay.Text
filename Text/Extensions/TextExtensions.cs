@@ -14,6 +14,60 @@ public enum Casing
 
 public static class TextExtensions
 {
+    public static int IndexOf(this ReadOnlySpan<char> text, char ch, int startIndex)
+    {
+        if ((uint)startIndex >= text.Length)
+            return -1;
+        var index = text.Slice(startIndex).IndexOf(ch);
+        if (index == -1) return -1;
+        return (index + startIndex);
+    }
+    
+    public static int IndexOf(this ReadOnlySpan<char> text, ReadOnlySpan<char> searchText, int startIndex)
+    {
+        if ((uint)startIndex >= text.Length)
+            return -1;
+        var index = text.Slice(startIndex).IndexOf(searchText);
+        if (index == -1) return -1;
+        return (index + startIndex);
+    }
+    
+    public static int IndexOf(this ReadOnlySpan<char> text, ReadOnlySpan<char> searchText, StringComparison stringComparison, int startIndex)
+    {
+        if ((uint)startIndex >= text.Length)
+            return -1;
+        var index = text.Slice(startIndex).IndexOf(searchText, stringComparison);
+        if (index == -1) return -1;
+        return (index + startIndex);
+    }
+    
+    public static int IndexOf(this Span<char> text, char ch, int startIndex)
+    {
+        if ((uint)startIndex >= text.Length)
+            return -1;
+        var index = text.Slice(startIndex).IndexOf(ch);
+        if (index == -1) return -1;
+        return (index + startIndex);
+    }
+    
+    public static int IndexOf(this Span<char> text, ReadOnlySpan<char> searchText, int startIndex)
+    {
+        if ((uint)startIndex >= text.Length)
+            return -1;
+        var index = text.Slice(startIndex).IndexOf(searchText);
+        if (index == -1) return -1;
+        return (index + startIndex);
+    }
+    
+    public static int IndexOf(this Span<char> text, ReadOnlySpan<char> searchText, StringComparison stringComparison, int startIndex)
+    {
+        if ((uint)startIndex >= text.Length)
+            return -1;
+        var index = text.Slice(startIndex).IndexOf(searchText, stringComparison);
+        if (index == -1) return -1;
+        return (index + startIndex);
+    }
+    
     public static string ToCasedString(this string? text, Casing casing)
     {
         if (string.IsNullOrEmpty(text)) return string.Empty;
@@ -57,7 +111,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
                 return buffer.AsString();
             }
@@ -68,7 +122,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
                 return buffer.AsString();
             }
@@ -85,7 +139,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2), textLen-1);
 #endif
                 return buffer.AsString();
             }
@@ -138,7 +192,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
                 return buffer.AsString();
             }
@@ -149,7 +203,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
                 return buffer.AsString();
             }
@@ -166,7 +220,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2));
+                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2), textLen-1);
 #endif
                 return buffer.AsString();
             }

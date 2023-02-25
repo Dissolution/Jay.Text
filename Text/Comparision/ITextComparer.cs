@@ -1,6 +1,4 @@
-﻿using System.Collections;
-
-namespace Jay.Text.Comparision;
+﻿namespace Jay.Text.Comparision;
 
 public interface ITextComparer : 
     IComparer<string?>,

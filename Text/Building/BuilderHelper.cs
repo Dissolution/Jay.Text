@@ -11,18 +11,18 @@ internal static class BuilderHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetStartingCapacity(int literalLength, int formattedCount)
     {
-        return (literalLength + formattedCount * 16).Clamp(MinimumCapacity, MaximumCapacity);
+        return (literalLength + (formattedCount * 16)).Clamp(MinimumCapacity, MaximumCapacity);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetCapacityAdding(int currentCapacity, int addingCharCount)
+    public static int GetCapacityToAdd(int currentCapacity, int addingCharCount)
     {
-        return (currentCapacity + addingCharCount) * 2;
+        return ((currentCapacity + addingCharCount) * 2).Clamp(MinimumCapacity, MaximumCapacity);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetCapacityMin(int currentCapacity, int minCapacity)
     {
-        return Math.Max(currentCapacity, minCapacity) * 2;
+        return (Math.Max(currentCapacity, minCapacity) * 2).Clamp(MinimumCapacity, MaximumCapacity);
     }
 }

@@ -14,6 +14,9 @@ public static class TextHelper
     public const string UppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     public const string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
 
+    public static readonly string NewLine = Environment.NewLine;
+    public static ReadOnlySpan<char> NewLineSpan => NewLine.AsSpan();
+
     /// <summary>
     /// The offset between an uppercase ascii letter and its lowercase equivalent
     /// </summary>
@@ -46,7 +49,6 @@ public static class TextHelper
             IL.Emit.Cpblk();
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void CopyBlock(ReadOnlySpan<char> source, Span<char> dest)
         {
@@ -55,53 +57,14 @@ public static class TextHelper
                 ref dest.GetPinnableReference(),
                 source.Length);
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyBlock(ReadOnlySpan<char> source, char[] dest)
+        internal static void CopyBlock(ReadOnlySpan<char> source, Span<char> dest, int sourceLen)
         {
             CopyBlock(
                 in source.GetPinnableReference(),
                 ref dest.GetPinnableReference(),
-                source.Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyBlock(char[] source, Span<char> dest)
-        {
-            CopyBlock(
-                in source.GetPinnableReference(),
-                ref dest.GetPinnableReference(),
-                source.Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyBlock(char[] source, char[] dest)
-        {
-            CopyBlock(in source.GetPinnableReference(),
-                ref dest.GetPinnableReference(),
-                source.Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void CopyBlock(string source, Span<char> dest)
-        {
-#if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
-            unsafe
-            {
-                fixed (char* ptr = source)
-                {
-                    CopyBlock(
-                        ptr,
-                        ref dest.GetPinnableReference(),
-                        source.Length);
-                }
-            }
-#else
-            CopyBlock(
-                in source.GetPinnableReference(),
-                ref dest.GetPinnableReference(),
-                source.Length);
-#endif
+                sourceLen);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

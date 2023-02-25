@@ -17,25 +17,25 @@ public ref struct InterpolatedTextBuilder<TBuilder>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendLiteral(string? text)
     {
-        _builder.Write(text);
+        _builder.Append(text);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendFormatted(ReadOnlySpan<char> text)
     {
-        _builder.Write(text);
+        _builder.Append(text);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendFormatted<T>(T value)
     {
-        _builder.Write<T>(value);
+        _builder.Append<T>(value);
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendFormatted<T>(T value, string? format)
     {
-        _builder.Write<T>(value, format);
+        _builder.Append<T>(value, format);
     }
 
     public override bool Equals(object? obj) => throw new NotSupportedException();

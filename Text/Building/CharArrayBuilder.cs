@@ -1,12 +1,12 @@
 ﻿using System.Buffers;
-using System.Collections;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Jay.Text.Compat;
 
 namespace Jay.Text;
 
-public abstract class CharArrayBuilderBase :
+public sealed class CharArrayBuilder :
     IList<char>, IReadOnlyList<char>,
     ICollection<char>, IReadOnlyCollection<char>,
     IEnumerable<char>, IEnumerable,
@@ -15,29 +15,36 @@ public abstract class CharArrayBuilderBase :
 #endif
     IDisposable
 {
-    protected static readonly string DefaultNewLine = Environment.NewLine;
-
     /// <summary>
     /// Rented char[] from pool
     /// </summary>
     private char[]? _charArray;
-
+    
     /// <summary>
     /// Current position we're writing to
     /// </summary>
-    private int _index;
+    private int _position;
+
 
     /// <inheritdoc cref="ICollection{T}"/>
-    int ICollection<char>.Count => _index;
+    int ICollection<char>.Count => _position;
+
     /// <inheritdoc cref="IReadOnlyCollection{T}"/>
-    int IReadOnlyCollection<char>.Count => _index;
+    int IReadOnlyCollection<char>.Count => _position;
+
     /// <inheritdoc cref="ICollection{T}"/>
     bool ICollection<char>.IsReadOnly => false;
 
-    public char this[int index]
+    /// <inheritdoc cref="IList{T}"/>
+    char IList<char>.this[int index]
     {
         get => Written[index];
         set => Written[index] = value;
+    }
+    /// <inheritdoc cref="IReadOnlyList{T}"/>
+    char IReadOnlyList<char>.this[int index]
+    {
+        get => Written[index];
     }
 
     /// <summary>
@@ -46,7 +53,7 @@ public abstract class CharArrayBuilderBase :
     public Span<char> Written
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _charArray.AsSpan(0, _index);
+        get => _charArray.AsSpan(0, _position);
     }
 
     /// <summary>
@@ -56,8 +63,10 @@ public abstract class CharArrayBuilderBase :
     public Span<char> Available
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _charArray.AsSpan(_index);
+        get => _charArray.AsSpan(_position);
     }
+
+    public Span<char> CharSpan => _charArray.AsSpan();
 
     /// <summary>
     /// The current total capacity to store <see cref="char"/>acters<br/>
@@ -66,7 +75,7 @@ public abstract class CharArrayBuilderBase :
     public int Capacity
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _charArray!.Length;
+        get => _charArray?.Length ?? 0;
     }
 
     /// <summary>
@@ -78,30 +87,34 @@ public abstract class CharArrayBuilderBase :
     public int Length
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _index;
+        get => _position;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => _index = value.Clamp(0, Capacity);
+        set => _position = value.Clamp(0, Capacity);
     }
 
-    protected CharArrayBuilderBase()
+    public CharArrayBuilder()
     {
         _charArray = ArrayPool<char>.Shared.Rent(BuilderHelper.MinimumCapacity);
-        _index = 0;
+        _position = 0;
     }
 
 #region Grow
+
     /// <summary>
     /// Grow the size of <see cref="_charArray"/> to at least the specified <paramref name="minCapacity"/>.
     /// </summary>
-    /// <param name="minCapacity">The minimum possible Capacity to grow to</param>
+    /// <param name="minCapacity">The minimum possible Capacity to grow to -- already validated</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void GrowCore(int minCapacity)
     {
+        Debug.Assert(minCapacity > BuilderHelper.MinimumCapacity);
+        Debug.Assert(minCapacity > Capacity);
+
         char[] newArray = ArrayPool<char>.Shared.Rent(minCapacity);
         TextHelper.Unsafe.CopyBlock(
             in _charArray!.GetPinnableReference(),
             ref newArray.GetPinnableReference(),
-            _index);
+            _position);
 
         char[]? toReturn = _charArray;
         _charArray = newArray;
@@ -115,58 +128,148 @@ public abstract class CharArrayBuilderBase :
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowBy(int addingCharCount)
     {
-        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, addingCharCount));
+        Debug.Assert(addingCharCount > 0);
+        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, addingCharCount));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowThenCopy(char ch)
     {
-        int index = _index;
-        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, 1));
+        int index = _position;
+        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, 1));
         TextHelper.Unsafe.CopyBlock(
             in ch,
             ref _charArray![index],
             1);
-        _index = index + 1;
+        _position = index + 1;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowThenCopy(ReadOnlySpan<char> text)
     {
-        int index = _index;
+        int index = _position;
         int len = text.Length;
-        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, len));
+        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, len));
         TextHelper.Unsafe.CopyBlock(
             in text.GetPinnableReference(),
             ref _charArray![index],
             len);
-        _index = index + len;
+        _position = index + len;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowThenCopy(string text)
     {
-        int index = _index;
+        int index = _position;
         int len = text.Length;
-        GrowCore(BuilderHelper.GetCapacityAdding(Capacity, len));
+        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, len));
         TextHelper.Unsafe.CopyBlock(
             in text.GetPinnableReference(),
             ref _charArray![index],
             len);
-        _index = index + len;
+        _position = index + len;
     }
+
 #endregion
 
+#region Capacity Modification
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void EnsureCapacityMin(int minCapacity)
+    {
+        int currentCapacity = Capacity;
+        if (currentCapacity < minCapacity)
+        {
+            GrowCore(BuilderHelper.GetCapacityMin(currentCapacity, minCapacity));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void EnsureCapacityToAdd(int adding)
+    {
+        if (adding > 0)
+        {
+            int currentCapacity = Capacity;
+            if (_position + adding > currentCapacity)
+            {
+                GrowCore(BuilderHelper.GetCapacityToAdd(currentCapacity, adding));
+            }
+        }
+    }
+
+#endregion
+
+#region Allocate
+
+    /// <summary>
+    /// Allocates a <c>Span&lt;char&gt;</c> of the given <paramref name="length"/>, updates this builder's <see cref="Length"/> and returns the allocated span
+    /// </summary>
+    public Span<char> Allocate(int length)
+    {
+        if (length > 0)
+        {
+            int curLen = _position;
+            int newLen = curLen + length;
+            if (newLen > Capacity)
+            {
+                GrowBy(length);
+            }
+
+            _position = newLen;
+            return _charArray.AsSpan(curLen, length);
+        }
+
+        return default;
+    }
+
+    public Span<char> AllocateAt(int index, int length)
+    {
+        int curLen = _position;
+        Validate.Insert(curLen, index);
+        if (length > 0)
+        {
+            // Check for growth
+            int newLen = curLen + length;
+            if (newLen > Capacity)
+            {
+                GrowBy(length);
+            }
+
+            // We're adding this much
+            _position = newLen;
+            // At end?
+            if (index == curLen)
+            {
+                // The same as Allocate(length)
+                return _charArray.AsSpan(curLen, length);
+            }
+            // Insert
+            else
+            {
+                Span<char> all = _charArray.AsSpan();
+                // Shift existing to the right
+                TextHelper.Unsafe.CopyBlock(source: all[new Range(index, curLen)], all[(index + length)..]);
+
+                // return where we allocated
+                return _charArray.AsSpan(index, length);
+            }
+        }
+
+        return Span<char>.Empty;
+    }
+
+#endregion
 
 #region Write
-    protected void AppendChar(char ch)
+
+    public void Write(char ch)
     {
-        int pos = _index;
+        int pos = _position;
         Span<char> chars = _charArray;
         if (pos < chars.Length)
         {
             chars[pos] = ch;
-            _index = pos + 1;
+            _position = pos + 1;
         }
         else
         {
@@ -174,12 +277,12 @@ public abstract class CharArrayBuilderBase :
         }
     }
 
-    protected void AppendCharSpan(ReadOnlySpan<char> text)
+    public void Write(ReadOnlySpan<char> text)
     {
         int len = text.Length;
         if (TextHelper.TryCopyTo(text, Available, len))
         {
-            _index += len;
+            _position += len;
         }
         else
         {
@@ -187,14 +290,14 @@ public abstract class CharArrayBuilderBase :
         }
     }
 
-    protected void AppendString(string? text)
+    public void Write(string? text)
     {
         if (text is not null)
         {
             int len = text.Length;
             if (TextHelper.TryCopyTo(text, Available, len))
             {
-                _index += len;
+                _position += len;
             }
             else
             {
@@ -203,23 +306,8 @@ public abstract class CharArrayBuilderBase :
         }
     }
 
-    protected void AppendNonNullString(string text)
+    public void Write<T>(T? value)
     {
-        int len = text.Length;
-        if (TextHelper.TryCopyTo(text, Available, len))
-        {
-            _index += len;
-        }
-        else
-        {
-            GrowThenCopy(text);
-        }
-    }
-
-    protected void AppendValue<T>(T? value)
-    {
-        if (value is null) return;
-
         string? str;
         if (value is IFormattable)
         {
@@ -233,7 +321,8 @@ public abstract class CharArrayBuilderBase :
                 {
                     GrowBy(BuilderHelper.MinimumCapacity);
                 }
-                _index += charsWritten;
+
+                _position += charsWritten;
                 return;
             }
 #endif
@@ -245,22 +334,12 @@ public abstract class CharArrayBuilderBase :
         {
             str = value?.ToString();
         }
-        if (str is null) return;
-        int len = str.Length;
-        if (TextHelper.TryCopyTo(str, Available, len))
-        {
-            _index += len;
-        }
-        else
-        {
-            GrowThenCopy(str);
-        }
+
+        Write(str);
     }
 
-    protected void AppendFormat<T>(T? value, string? format)
+    public void Write<T>(T? value, string? format, IFormatProvider? provider = null)
     {
-        if (value is null) return;
-
         string? str;
         if (value is IFormattable)
         {
@@ -270,54 +349,36 @@ public abstract class CharArrayBuilderBase :
             {
                 int charsWritten;
                 // constrained call avoiding boxing for value types
-                while (!((ISpanFormattable)value).TryFormat(Available, out charsWritten, format, default))
+                while (!((ISpanFormattable)value).TryFormat(Available, out charsWritten, format, provider))
                 {
                     GrowBy(BuilderHelper.MinimumCapacity);
                 }
-                _index += charsWritten;
+
+                _position += charsWritten;
                 return;
             }
 #endif
 
             // constrained call avoiding boxing for value types
-            str = ((IFormattable)value).ToString(format, default);
+            str = ((IFormattable)value).ToString(format, provider);
         }
         else
         {
             str = value?.ToString();
         }
 
-        if (str is null) return;
-        int len = str.Length;
-        if (TextHelper.TryCopyTo(str, Available, len))
-        {
-            _index += len;
-        }
-        else
-        {
-            GrowThenCopy(str);
-        }
+        Write(str);
     }
+
 #endregion
 
-    public void EnsureCapacityToAdd(int adding)
-    {
-        if (adding > 0)
-        {
-            var newCapacity = _index + adding;
-            if (newCapacity > Capacity)
-            {
-                GrowBy(adding);
-            }
-        }
-    }
 
     public void RemoveAt(int index)
     {
-        if ((uint)index >= (uint)_index)
+        if ((uint)index >= (uint)_position)
             throw new IndexOutOfRangeException();
         Written.Slice(index + 1).CopyTo(Written.Slice(index));
-        _index--;
+        _position--;
     }
 
     // Trim Methods
@@ -332,43 +393,57 @@ public abstract class CharArrayBuilderBase :
                 return;
             }
         }
+
         this.Length = 0;
+    }
+
+    public void TrimEnd(ReadOnlySpan<char> trimSpan)
+    {
+        if (Written.EndsWith(trimSpan))
+        {
+            this.Length -= trimSpan.Length;
+        }
     }
 
     public void Clear()
     {
-        _index = 0;
+        _position = 0;
     }
 
-    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = default)
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default,
+        IFormatProvider? provider = default)
     {
-        if (_index <= destination.Length)
+        if (_position <= destination.Length)
         {
             TextHelper.Unsafe.CopyBlock(
                 in _charArray!.GetPinnableReference(),
                 ref destination.GetPinnableReference(),
-                _index);
-            charsWritten = _index;
+                _position);
+            charsWritten = _position;
             return true;
         }
+
         charsWritten = 0;
         return false;
     }
 
 
 #region Interface Implementations
+
     void ICollection<char>.Add(char ch)
     {
-        AppendChar(ch);
+        Write(ch);
     }
+
     void IList<char>.Insert(int index, char ch)
     {
-        Validate.Insert(_index, index);
+        Validate.Insert(_position, index);
         EnsureCapacityToAdd(1);
         Written.Slice(index).CopyTo(Written.Slice(index + 1));
         Written[index] = ch;
-        _index++;
+        _position++;
     }
+
     bool ICollection<char>.Remove(char ch)
     {
         int i = Written.IndexOf(ch);
@@ -377,32 +452,36 @@ public abstract class CharArrayBuilderBase :
             RemoveAt(i);
             return true;
         }
+
         return false;
     }
 
     bool ICollection<char>.Contains(char ch)
     {
-        for (var i = 0; i < _index; i++)
+        for (var i = 0; i < _position; i++)
         {
             if (_charArray![i] == ch)
                 return true;
         }
+
         return false;
     }
+
     int IList<char>.IndexOf(char ch)
     {
-        for (var i = 0; i < _index; i++)
+        for (var i = 0; i < _position; i++)
         {
             if (_charArray![i] == ch)
                 return i;
         }
+
         return -1;
     }
 
     void ICollection<char>.CopyTo(char[] array, int arrayIndex)
     {
         Validate.Index(array.Length, arrayIndex);
-        if (arrayIndex + _index > array.Length)
+        if (arrayIndex + _position > array.Length)
             throw new ArgumentException("Cannot contain text", nameof(array));
         Written.CopyTo(array.AsSpan(arrayIndex));
     }
@@ -410,27 +489,29 @@ public abstract class CharArrayBuilderBase :
     IEnumerator IEnumerable.GetEnumerator()
     {
         var chars = _charArray!;
-        var len = _index;
+        var len = _position;
         for (var i = 0; i < len; i++)
         {
             yield return chars[i];
         }
     }
+
     IEnumerator<char> IEnumerable<char>.GetEnumerator()
     {
         var chars = _charArray!;
-        var len = _index;
+        var len = _position;
         for (var i = 0; i < len; i++)
         {
             yield return chars[i];
         }
     }
+
 #endregion
 
     /// <summary>
     /// Returns any rented array to the pool.
     /// </summary>
-    public virtual void Dispose()
+    public void Dispose()
     {
         char[]? toReturn = _charArray;
         _charArray = null;
@@ -441,10 +522,10 @@ public abstract class CharArrayBuilderBase :
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override bool Equals(object? obj) => throw new NotImplementedException();
+    public override bool Equals(object? obj) => throw new NotSupportedException();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override int GetHashCode() => throw new NotImplementedException();
+    public override int GetHashCode() => throw new NotSupportedException();
 
     public string ToStringAndDispose()
     {
@@ -459,4 +540,3 @@ public abstract class CharArrayBuilderBase :
 
     public override string ToString() => Written.AsString();
 }
-

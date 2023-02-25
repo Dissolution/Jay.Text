@@ -1,38 +1,13 @@
-/*using FluentAssertions;
+using FluentAssertions;
 
-namespace Jay.Text.Tests;
-
-internal static class TestData
-{
-    public const string QBF = "The quick brown fox jumped over the lazy dogs.";
-    public const string LoremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
-    public const string Stutter = "Th-th-th-that's all, folks!";
-}
-
-public class InterpolatedTextBuilderTests
-{
-    [Fact]
-    public void InterpolatedWrite()
-    {
-        using var text = TextBuilder.Borrow();
-        text.Length.Should().Be(0);
-        string abc = "ABC";
-        text.Write($"{abc}");
-        text.Length.Should().Be(3);
-        text.ToString().Should().Be(abc);
-        text.Clear();
-        text.Length.Should().Be(0);
-        text.Write($"{DateTime.Now:s}");
-        text.Length.Should().Be(19);
-    }
-}
+namespace Jay.Text.Tests.TextBuilderTests;
 
 public class ReplaceTests
 {
     [Fact]
     public void ReplaceChar()
     {
-        using var text = TextBuilder.Borrow();
+        using var text = new TextBuilder();
         text.Write(TestData.LoremIpsum);
         text.Length.Should().Be(TestData.LoremIpsum.Length);
         text.Count(ch => ch == 'o').Should().Be(4);
@@ -90,7 +65,7 @@ public class ReplaceTests
     [Fact]
     public void ReplaceStringExact()
     {
-        using var text = TextBuilder.Borrow();
+        using var text = new TextBuilder();
         text.Write(TestData.LoremIpsum);
         text.Length.Should().Be(TestData.LoremIpsum.Length);
         text.Count(ch => ch == 'o').Should().Be(4);
@@ -116,7 +91,7 @@ public class ReplaceTests
     [Fact]
     public void ReplaceStringShrink()
     {
-        using var text = TextBuilder.Borrow();
+        using var text = new TextBuilder();
         text.Write(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "th");
@@ -131,7 +106,7 @@ public class ReplaceTests
     [Fact]
     public void ReplaceStringShrinkIgnoreCase()
     {
-        using var text = TextBuilder.Borrow();
+        using var text = new TextBuilder();
         text.Write(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "TH", StringComparison.OrdinalIgnoreCase);
@@ -146,7 +121,7 @@ public class ReplaceTests
     [Fact]
     public void ReplaceStringGrow()
     {
-        using var text = TextBuilder.Borrow();
+        using var text = new TextBuilder();
         text.Write(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "th");
@@ -161,7 +136,7 @@ public class ReplaceTests
     [Fact]
     public void ReplaceStringGrowIgnoreCase()
     {
-        using var text = TextBuilder.Borrow();
+        using var text = new TextBuilder();
         text.Write(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "th", StringComparison.OrdinalIgnoreCase);
@@ -172,4 +147,4 @@ public class ReplaceTests
         thCount = CountInstances(text.Written, "th");
         thCount.Should().Be(0);
     }
-}*/
+}

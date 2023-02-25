@@ -33,6 +33,17 @@ public static class Validate
         throw new ArgumentOutOfRangeException(rangeName, range,
             $"{rangeName} {range} must be between 0 and {available - 1}");
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Range(int available, int start, int length,
+        [CallerArgumentExpression(nameof(start))] string? startName = null,
+        [CallerArgumentExpression(nameof(length))] string? lengthName = null)
+    {
+        if ((uint)start > available)
+            throw new ArgumentOutOfRangeException(startName, start, $"{startName} {start} must be between 0 and {available - 1}");
+        if (start + (uint)length > available)
+            throw new ArgumentOutOfRangeException(lengthName, length, $"{lengthName} {length} must be between 0 and {available - start}");
+    }
 
 
     public static void Insert(int available, int index, 

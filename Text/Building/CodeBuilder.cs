@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace Jay.Text;
 
@@ -18,35 +16,35 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
     protected CodeBuilder()
         : base()
     {
-        _newLineIndent = DefaultNewLine;
+        _newLineIndent = TextHelper.NewLine;
     }
 
     protected string CurrentNewLineIndent()
     {
-        var lastNewLineIndex = Written.LastIndexOf(DefaultNewLine.AsSpan());
+        var lastNewLineIndex = _charArrayBuilder.Written.LastIndexOf(TextHelper.NewLineSpan);
         if (lastNewLineIndex == -1)
-            return DefaultNewLine;
-        return Written.Slice(lastNewLineIndex).AsString();
+            return TextHelper.NewLine;
+        return _charArrayBuilder.Written.Slice(lastNewLineIndex).AsString();
     }
 
     public override TBuilder NewLine()
     {
-        AppendNonNullString(_newLineIndent);
+        _charArrayBuilder.Write(_newLineIndent);
         return _this;
     }
 
-    public override TBuilder Write(string? str)
+    public override TBuilder Append(string? str)
     {
-        return Write(str.AsSpan());
+        return Append(str.AsSpan());
     }
 
-    public override TBuilder Write(ReadOnlySpan<char> text)
+    public override TBuilder Append(ReadOnlySpan<char> text)
     {
         int textLen = text.Length;
         if (textLen == 0) return _this;
 
         // We're going to be splitting on NewLine
-        ReadOnlySpan<char> newLine = DefaultNewLine.AsSpan();
+        ReadOnlySpan<char> newLine = TextHelper.NewLineSpan;
 
         // Index search
         int sliceStart = 0;
@@ -59,15 +57,14 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         int sliceLen;
         while (index < textLen)
         {
-            var nli = text.Slice(index).IndexOf(newLine);
-            if (nli >= 0)
+            index = text.IndexOf(newLine, startIndex: index);
+            if (index >= 0)
             {
-                index = (nli + index);
                 sliceLen = index - sliceStart;
                 if (sliceLen > 0)
                 {
                     // Write this chunk
-                    AppendCharSpan(text.Slice(sliceStart, sliceLen));
+                    _charArrayBuilder.Write(text.Slice(sliceStart, sliceLen));
                     // Write current NewLine
                     NewLine();
                 }
@@ -87,7 +84,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         if (sliceLen > 0)
         {
             // write it
-            AppendCharSpan(text.Slice(sliceStart, sliceLen));
+            _charArrayBuilder.Write(text.Slice(sliceStart, sliceLen));
         }
 
         return _this;
@@ -101,7 +98,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         object?[] formatArgs = text.GetArguments();
 
         // We're going to be splitting on NewLine
-        ReadOnlySpan<char> newLine = DefaultNewLine.AsSpan();
+        ReadOnlySpan<char> newLine = TextHelper.NewLineSpan;
 
         // Index search
         int sliceStart = 0;
@@ -114,10 +111,9 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         int sliceLen;
         while (index < formatLen)
         {
-            var nli = format.Slice(index).IndexOf(newLine);
-            if (nli >= 0)
+            index = format.IndexOf(newLine, startIndex: index);
+            if (index >= 0)
             {
-                index = (nli + index);
                 sliceLen = index - sliceStart;
                 if (sliceLen > 0)
                 {
@@ -149,11 +145,11 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
     }
 #endif
 
-    public override TBuilder Write<T>([AllowNull] T value)
+    public override TBuilder Append<T>([AllowNull] T value)
     {
-        return Write<T>(value, default);
+        return Format<T>(value, default);
     }
-    public override TBuilder Write<T>([AllowNull] T value, string? format)
+    public override TBuilder Format<T>([AllowNull] T value, string? format)
     {
         switch (value)
         {
@@ -185,22 +181,22 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
             }
             case string str:
             {
-                AppendNonNullString(str);
+                _charArrayBuilder.Write(str);
                 return _this;
             }
             case IFormattable formattable:
             {
-                AppendFormat(formattable, format);
+                _charArrayBuilder.Write(formattable, format);
                 return _this;
             }
             case IEnumerable enumerable:
             {
                 format ??= ",";
-                return Delimit(format, enumerable.Cast<object?>(), static (w, v) => w.AppendValue<object?>(v));
+                return Delimit(format, enumerable.Cast<object?>(), static (w, v) => w._charArrayBuilder.Write<object?>(v));
             }
             default:
             {
-                AppendString(value.ToString());
+                _charArrayBuilder.Write(value.ToString());
                 return _this;
             }
         }
@@ -212,7 +208,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         // We might be on a new line, but not yet indented
         if (CurrentNewLineIndent() == oldIndent)
         {
-            AppendNonNullString(indent);
+            _charArrayBuilder.Write(indent);
         }
 
         var newIndent = oldIndent + indent;
@@ -220,10 +216,10 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         indentBlock(_this);
         _newLineIndent = oldIndent;
         // Did we do a newline that we need to decrease?
-        if (Written.EndsWith(newIndent.AsSpan()))
+        if (_charArrayBuilder.Written.EndsWith(newIndent.AsSpan()))
         {
-            Length -= newIndent.Length;
-            AppendNonNullString(oldIndent);
+            _charArrayBuilder.Length -= newIndent.Length;
+            _charArrayBuilder.Write(oldIndent);
         }
         return _this;
     }
