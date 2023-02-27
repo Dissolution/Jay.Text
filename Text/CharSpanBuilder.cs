@@ -1,8 +1,5 @@
-﻿using System.Buffers;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using Jay.Text.Compat;
+﻿using System.ComponentModel;
+using Jay.Text.Utilities;
 
 // ReSharper disable UnusedParameter.Local
 
@@ -16,6 +13,8 @@ namespace Jay.Text;
 #endif
 public ref struct CharSpanBuilder
 {
+    public static implicit operator CharSpanBuilder(Span<char> buffer) => new(buffer);
+
     /// <summary>
     /// Rented char[] from pool, used to back <see cref="_chars"/>
     /// </summary>
@@ -106,7 +105,7 @@ public ref struct CharSpanBuilder
     public CharSpanBuilder(int literalLength, int formattedCount)
     {
         _chars = _charArray = ArrayPool<char>.Shared
-            .Rent(BuilderHelper.GetStartingCapacity(literalLength, formattedCount));
+            .Rent(BuilderHelper.GetInterpolatedStartCapacity(literalLength, formattedCount));
         _position = 0;
     }
 
@@ -152,14 +151,14 @@ public ref struct CharSpanBuilder
     private void GrowBy(int addingCharCount)
     {
         Debug.Assert(addingCharCount > 0);
-        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, addingCharCount));
+        GrowCore(BuilderHelper.GetGrowByCapacity(Capacity, addingCharCount));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowThenCopy(char ch)
     {
         int index = _position;
-        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, 1));
+        GrowCore(BuilderHelper.GetGrowByCapacity(Capacity, 1));
         TextHelper.Unsafe.CopyBlock(
             in ch,
             ref _chars[index],
@@ -172,7 +171,7 @@ public ref struct CharSpanBuilder
     {
         int index = _position;
         int len = text.Length;
-        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, len));
+        GrowCore(BuilderHelper.GetGrowByCapacity(Capacity, len));
         TextHelper.Unsafe.CopyBlock(
             in text.GetPinnableReference(),
             ref _chars[index],
@@ -185,7 +184,7 @@ public ref struct CharSpanBuilder
     {
         int index = _position;
         int len = text.Length;
-        GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, len));
+        GrowCore(BuilderHelper.GetGrowByCapacity(Capacity, len));
         TextHelper.Unsafe.CopyBlock(
             in text.GetPinnableReference(),
             ref _chars[index],
@@ -249,7 +248,7 @@ public ref struct CharSpanBuilder
     public void AppendFormatted<T>(T? value) => Write<T>(value);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted<T>(T value, string? format) => Write<T>(value, format);
+    public void AppendFormatted<T>(T value, string? format) => Format<T>(value, format);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AppendFormatted(char ch) => Write(ch);
@@ -264,10 +263,9 @@ public ref struct CharSpanBuilder
     public void AppendFormatted(object? obj) => Write<object?>(obj);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(object? value, string? format) => Write<object?>(value, format);
+    public void AppendFormatted(object? value, string? format) => Format<object?>(value, format);
 #endregion
 
-#region Write
     public void Write(char ch)
     {
         int pos = _position;
@@ -343,7 +341,7 @@ public ref struct CharSpanBuilder
         Write(str);
     }
 
-    public void Write<T>(T? value, string? format, IFormatProvider? provider = null)
+    public void Format<T>(T? value, string? format, IFormatProvider? provider = null)
     {
         string? str;
         if (value is IFormattable)
@@ -373,7 +371,6 @@ public ref struct CharSpanBuilder
 
         Write(str);
     }
-#endregion
 
 
     /// <summary>
@@ -404,6 +401,6 @@ public ref struct CharSpanBuilder
 
     public override string ToString()
     {
-        return Written.AsString();
+        return Written.ToString();
     }
 }

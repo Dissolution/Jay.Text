@@ -1,6 +1,4 @@
-﻿using FluentAssertions;
-
-namespace Jay.Text.Tests.TextBuilderTests;
+﻿namespace Jay.Text.Tests.TextBuilderTests;
 
 public class AlignTests
 {

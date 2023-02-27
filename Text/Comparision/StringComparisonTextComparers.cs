@@ -1,4 +1,6 @@
-﻿namespace Jay.Text.Comparision;
+﻿using Jay.Text.Utilities;
+
+namespace Jay.Text.Comparision;
 
 internal sealed class StringComparisonTextComparers : TextComparers
 {
@@ -67,7 +69,7 @@ internal sealed class StringComparisonTextComparers : TextComparers
 #else
     public override int GetHashCode(ReadOnlySpan<char> span)
     {
-        return GetStringComparer().GetHashCode(span.AsString());
+        return GetStringComparer().GetHashCode(span.ToString());
     }
 #endif
 }

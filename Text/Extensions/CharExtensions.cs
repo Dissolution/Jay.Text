@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Jay.Text.Extensions;
+﻿namespace Jay.Text.Extensions;
 
 public static class CharExtensions
 {
@@ -28,6 +26,10 @@ public static class CharExtensions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAscii(this char ch) => (ushort)ch < 128;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiLetter(this char ch) => (ch is >= 'a' and <= 'z') || (ch is >= 'A' and <= 'Z');
+
 #else
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<char> AsSpan(this in char ch)
@@ -46,5 +48,9 @@ public static class CharExtensions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAscii(this char ch) => char.IsAscii(ch);
+
+     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAsciiLetter(this char ch) => char.IsAsciiLetter(ch);
+
 #endif
 }

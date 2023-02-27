@@ -1,7 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Jay.Text.Utilities;
 
-namespace Jay.Text;
+namespace Jay.Text.Code;
 
+
+// ReSharper disable once InconsistentNaming
+public delegate void CBA(CodeBuilder builder);
 
 public sealed class CodeBuilder : CodeBuilder<CodeBuilder>
 {
@@ -21,15 +25,15 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
 
     protected string CurrentNewLineIndent()
     {
-        var lastNewLineIndex = _charArrayBuilder.Written.LastIndexOf(TextHelper.NewLineSpan);
+        var lastNewLineIndex = Written.LastIndexOf(TextHelper.NewLineSpan);
         if (lastNewLineIndex == -1)
             return TextHelper.NewLine;
-        return _charArrayBuilder.Written.Slice(lastNewLineIndex).AsString();
+        return Written.Slice(lastNewLineIndex).ToString();
     }
 
     public override TBuilder NewLine()
     {
-        _charArrayBuilder.Write(_newLineIndent);
+        this.Write(_newLineIndent);
         return _this;
     }
 
@@ -57,14 +61,14 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         int sliceLen;
         while (index < textLen)
         {
-            index = text.IndexOf(newLine, startIndex: index);
+            index = text.NextIndexOf(newLine, startIndex: index);
             if (index >= 0)
             {
                 sliceLen = index - sliceStart;
                 if (sliceLen > 0)
                 {
                     // Write this chunk
-                    _charArrayBuilder.Write(text.Slice(sliceStart, sliceLen));
+                    this.Write(text.Slice(sliceStart, sliceLen));
                     // Write current NewLine
                     NewLine();
                 }
@@ -84,7 +88,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         if (sliceLen > 0)
         {
             // write it
-            _charArrayBuilder.Write(text.Slice(sliceStart, sliceLen));
+            this.Write(text.Slice(sliceStart, sliceLen));
         }
 
         return _this;
@@ -111,7 +115,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         int sliceLen;
         while (index < formatLen)
         {
-            index = format.IndexOf(newLine, startIndex: index);
+            index = format.NextIndexOf(newLine, startIndex: index);
             if (index >= 0)
             {
                 sliceLen = index - sliceStart;
@@ -149,7 +153,8 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
     {
         return Format<T>(value, default);
     }
-    public override TBuilder Format<T>([AllowNull] T value, string? format)
+
+    public override TBuilder Format<T>([AllowNull] T value, string? format, IFormatProvider? provider = null)
     {
         switch (value)
         {
@@ -181,22 +186,22 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
             }
             case string str:
             {
-                _charArrayBuilder.Write(str);
+                this.Write(str);
                 return _this;
             }
             case IFormattable formattable:
             {
-                _charArrayBuilder.Write(formattable, format);
+                this.WriteFormat(formattable, format, provider);
                 return _this;
             }
             case IEnumerable enumerable:
             {
                 format ??= ",";
-                return Delimit(format, enumerable.Cast<object?>(), static (w, v) => w._charArrayBuilder.Write<object?>(v));
+                return Delimit(format, enumerable.Cast<object?>(), static (w, v) => w.Append<object?>(v));
             }
             default:
             {
-                _charArrayBuilder.Write(value.ToString());
+                this.Write<T>(value);
                 return _this;
             }
         }
@@ -208,7 +213,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         // We might be on a new line, but not yet indented
         if (CurrentNewLineIndent() == oldIndent)
         {
-            _charArrayBuilder.Write(indent);
+            this.Write(indent);
         }
 
         var newIndent = oldIndent + indent;
@@ -216,10 +221,10 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         indentBlock(_this);
         _newLineIndent = oldIndent;
         // Did we do a newline that we need to decrease?
-        if (_charArrayBuilder.Written.EndsWith(newIndent.AsSpan()))
+        if (Written.EndsWith(newIndent.AsSpan()))
         {
-            _charArrayBuilder.Length -= newIndent.Length;
-            _charArrayBuilder.Write(oldIndent);
+            this.Length -= newIndent.Length;
+            this.Write(oldIndent);
         }
         return _this;
     }

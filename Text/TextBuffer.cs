@@ -1,10 +1,17 @@
-﻿using System.Buffers;
-using System.ComponentModel;
-using Jay.Text.Compat;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
+﻿using System.ComponentModel;
 
-namespace Jay.Text.Building
+/* Unmerged change from project 'Text (netstandard2.1)'
+Before:
+using Jay.Text.Utilities;
+After:
+using Jay;
+using Jay.Text;
+using Jay.Text;
+using Jay.Text.Utilities;
+*/
+using Jay.Text.Utilities;
+
+namespace Jay.Text
 {
     public class TextBuffer :
         IList<char>, IReadOnlyList<char>,
@@ -70,7 +77,7 @@ namespace Jay.Text.Building
         /// Gets a <c>Span&lt;<see cref="char"/>&gt;</c> of characters available for writing<br/>
         /// <b>Caution</b>: If you write to Available, you must also update Length!
         /// </summary>
-        public ReadOnlySpan<char> Available
+        public Span<char> Available
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _buffer.AsSpan(_position);
@@ -101,13 +108,17 @@ namespace Jay.Text.Building
             set => _position = value.Clamp(0, Capacity);
         }
 
+        /// <summary>
+        /// Constructs a new, empty <see cref="TextBuffer"/> with default <see cref="Capacity"/>.<br/>
+        /// Caution: this <see cref="TextBuffer"/> instance should be Disposed in order to return a rented <see cref="char"/><c>[]</c> to its pool.
+        /// </summary>
         public TextBuffer()
         {
             _buffer = ArrayPool<char>.Shared.Rent(BuilderHelper.MinimumCapacity);
             _position = 0;
         }
 
-#region Grow
+        #region Grow
 
         /// <summary>
         /// Grow the size of <see cref="_buffer"/> to at least the specified <paramref name="minCapacity"/>.
@@ -131,28 +142,43 @@ namespace Jay.Text.Building
             ArrayPool<char>.Shared.Return(toReturn);
         }
 
+        /// <summary>
+        /// Grows the <see cref="Capacity"/> by at least the <paramref name="addingCharCount"/>
+        /// </summary>
+        /// <param name="addingCharCount">The minimum number of characters to increase the <see cref="Capacity"/> by</param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void GrowBy(int addingCharCount)
         {
             if (addingCharCount > 0)
             {
-                GrowCore(BuilderHelper.GetCapacityToAdd(Capacity, addingCharCount));
+                GrowCore(BuilderHelper.GetGrowByCapacity(Capacity, addingCharCount));
             }
         }
 
+        /// <summary>
+        /// Grows the <see cref="Capacity"/> to at least the <paramref name="minCapacity"/>
+        /// </summary>
+        /// <param name="minCapacity">The minimum the <see cref="Capacity"/> must be</param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void GrowTo(int minCapacity)
         {
             if (minCapacity > 0)
             {
-                GrowCore(BuilderHelper.GetCapacityMin(Capacity, minCapacity));
+                GrowCore(BuilderHelper.GetGrowToCapacity(Capacity, minCapacity));
             }
         }
 
-#endregion
+        #endregion
 
-#region Allocate
 
+        #region Allocate
+
+        /// <summary>
+        /// Allocates a new <see cref="char"/> at the beginning of <see cref="Available"/>,
+        /// increases <see cref="Length"/> by 1,
+        /// and returns a <c>ref</c> to that <see cref="char"/>
+        /// </summary>
+        /// <returns></returns>
         public ref char Allocate()
         {
             int curLen = _position;
@@ -170,8 +196,11 @@ namespace Jay.Text.Building
         }
 
         /// <summary>
-        /// Allocates a <c>Span&lt;char&gt;</c> of the given <paramref name="length"/>, updates this builder's <see cref="Length"/> and returns the allocated span
+        /// Allocates a <c>Span&lt;char&gt;</c> at the beginning of <see cref="Available"/>,
+        /// increases <see cref="Length"/> by <paramref name="length"/>
+        /// and returns the allocated <c>Span&lt;char&gt;</c>
         /// </summary>
+        /// <param name="length">The number of characters to allocate space for</param>
         public Span<char> Allocate(int length)
         {
             if (length > 0)
@@ -186,6 +215,7 @@ namespace Jay.Text.Building
 
                 // Add to our current position
                 _position = newLen;
+
                 // Return the allocated (at end of Written)
                 return _buffer.AsSpan(curLen, length);
             }
@@ -194,6 +224,14 @@ namespace Jay.Text.Building
             return default;
         }
 
+        /// <summary>
+        /// Allocates a new <see cref="char"/> at <paramref name="index"/>,
+        /// shifts existing chars to make an empty hole,
+        /// increases <see cref="Length"/> by 1,
+        /// and returns a <c>ref</c> to that <see cref="char"/>
+        /// </summary>
+        /// <param name="index">The index to allocate a character at</param>
+        /// <returns></returns>
         public ref char AllocateAt(int index)
         {
             int curLen = _position;
@@ -216,22 +254,28 @@ namespace Jay.Text.Building
                 return ref _buffer[curLen];
             }
             // Insert
-            else
-            {
-                // Shift existing to the right
-                var keep = _buffer.AsSpan(new Range(start: index, end: curLen));
-                var keepLength = keep.Length;
-                // We know we have enough space to grow to
-                var rightBuffer = _buffer.AsSpan(index + 1, keepLength);
-                TextHelper.Unsafe.CopyBlock(
-                    source: keep,
-                    dest: rightBuffer,
-                    sourceLen: keepLength);
-                // return where we allocated
-                return ref _buffer[index];
-            }
+
+            // Shift existing to the right
+            var keep = _buffer.AsSpan(new Range(start: index, end: curLen));
+            var keepLength = keep.Length;
+            // We know we have enough space to grow to
+            var rightBuffer = _buffer.AsSpan(index + 1, keepLength);
+            TextHelper.Unsafe.CopyTo(
+                source: keep,
+                dest: rightBuffer,
+                sourceLen: keepLength);
+            // return where we allocated
+            return ref _buffer[index];
         }
 
+        /// <summary>
+        /// Allocates a <c>Span&lt;char&gt;</c> at <paramref name="index"/>,
+        /// shifts existing chars to make an empty hole,
+        /// increases <see cref="Length"/> by <paramref name="length"/>
+        /// and returns the allocated <c>Span&lt;char&gt;</c>
+        /// </summary>
+        /// <param name="index">The index to allocate the span at</param>
+        /// <param name="length">The number of characters to allocate space for</param>
         public Span<char> AllocateAt(int index, int length)
         {
             int curLen = _position;
@@ -256,30 +300,33 @@ namespace Jay.Text.Building
                     return _buffer.AsSpan(curLen, length);
                 }
                 // Insert
-                else
-                {
-                    // Shift existing to the right
-                    var rightSide = _buffer.AsSpan(new Range(start: index, end: curLen));
-                    var rsLen = rightSide.Length;
-                    // We know we have enough space to grow to
-                    var rightBuffer = _buffer.AsSpan(index + length, rsLen);
-                    TextHelper.Unsafe.CopyBlock(
-                        source: rightSide,
-                        dest: rightBuffer,
-                        sourceLen: rsLen);
-                    // return where we allocated
-                    return _buffer.AsSpan(index, length);
-                }
+
+                // Shift existing to the right
+                var keep = _buffer.AsSpan(new Range(start: index, end: curLen));
+                var keepLen = keep.Length;
+                // We know we have enough space to grow to
+                var destBuffer = _buffer.AsSpan(index + length, keepLen);
+                TextHelper.Unsafe.CopyTo(
+                    source: keep,
+                    dest: destBuffer,
+                    sourceLen: keepLen);
+                // return where we allocated
+                return _buffer.AsSpan(index, length);
             }
 
             // Asked for nothing
             return Span<char>.Empty;
         }
 
-#endregion
+        #endregion
 
-#region Remove
+        #region Remove
 
+        /// <summary>
+        /// Removes the <see cref="char"/> at the given <paramref name="index"/>
+        /// and shifts existing <see cref="Written"/> to cover the hole
+        /// </summary>
+        /// <param name="index">The index of the char to delete</param>
         public void Remove(int index)
         {
             int curLen = _position;
@@ -288,12 +335,18 @@ namespace Jay.Text.Building
             var keep = _buffer.AsSpan(new Range(start: index + 1, end: curLen));
             var keepLen = keep.Length;
             // The place to put it at the cut
-            var rightBuffer = _buffer.AsSpan(index, keepLen);
-            TextHelper.Unsafe.CopyBlock(keep, rightBuffer, keepLen);
+            var destBuffer = _buffer.AsSpan(index, keepLen);
+            TextHelper.Unsafe.CopyTo(keep, destBuffer, keepLen);
             // Length is shorter
             _position = curLen - 1;
         }
 
+        /// <summary>
+        /// Removes the <see cref="char"/>s from the given <paramref name="index"/> for the given <paramref name="length"/>
+        /// and shifts existing <see cref="Written"/> to cover the hole
+        /// </summary>
+        /// <param name="index">The index of the first char to delete</param>
+        /// <param name="length">The number of chars to delete</param>
         public void Remove(int index, int length)
         {
             int curLen = _position;
@@ -302,8 +355,8 @@ namespace Jay.Text.Building
             var keep = _buffer.AsSpan(new Range(start: index + length, end: curLen));
             var keepLen = keep.Length;
             // The place to put it at the cut
-            var rightBuffer = _buffer.AsSpan(index, keepLen);
-            TextHelper.Unsafe.CopyBlock(keep, rightBuffer, keepLen);
+            var destBuffer = _buffer.AsSpan(index, keepLen);
+            TextHelper.Unsafe.CopyTo(keep, destBuffer, keepLen);
             // Length is shorter
             _position = curLen - length;
         }
@@ -314,9 +367,36 @@ namespace Jay.Text.Building
             Remove(offset, length);
         }
 
+        public void RemoveAll(ReadOnlySpan<char> text, StringComparison comparison = StringComparison.Ordinal)
+        {
+            int index;
+            while ((index = MemoryExtensions.IndexOf(Written, text, comparison)) != -1)
+            {
+                Remove(index, text.Length);
+            }
+        }
+
         public void RemoveFirst(int length)
         {
-            Remove(0, length);
+            if (length > 0)
+            {
+                if (length >= Length)
+                {
+                    Length = 0;
+                    return;
+                }
+
+                int curLen = _position;
+                // Everything we're keeping after the cut
+                var keep = _buffer.AsSpan(new Range(start: length, end: curLen));
+                var keepLen = keep.Length;
+                // The place we write the keep
+                var destBuffer = _buffer.AsSpan(0, keepLen);
+                TextHelper.Unsafe.CopyTo(keep, destBuffer, keepLen);
+
+                // Length is shorter
+                _position = curLen - length;
+            }
         }
 
         public void RemoveLast(int length)
@@ -324,13 +404,13 @@ namespace Jay.Text.Building
             if (length > 0)
             {
                 // Happy hack
-                _position -= length;
+                Length -= length;
             }
         }
 
-#endregion
+        #endregion
 
-#region Interface Implementations
+        #region Interface Implementations
 
         void ICollection<char>.Add(char ch)
         {
@@ -409,7 +489,7 @@ namespace Jay.Text.Building
         }
 
 #if NET6_0_OR_GREATER
-        bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, 
+        bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten,
             ReadOnlySpan<char> format,
             IFormatProvider? provider)
         {
@@ -430,7 +510,7 @@ namespace Jay.Text.Building
         string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToString();
 #endif
 
-#endregion
+        #endregion
 
         /// <summary>
         /// Returns any rented array to the pool.
@@ -457,7 +537,7 @@ namespace Jay.Text.Building
             Dispose();
             return result;
         }
-        
-        public override string ToString() => Written.AsString();
+
+        public override string ToString() => Written.ToString();
     }
 }

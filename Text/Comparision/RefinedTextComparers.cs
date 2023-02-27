@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Jay.Text.Utilities;
 
 namespace Jay.Text.Comparision;
 

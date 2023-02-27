@@ -1,5 +1,3 @@
-using FluentAssertions;
-
 namespace Jay.Text.Tests.TextBuilderTests;
 
 public class ReplaceTests
@@ -8,7 +6,7 @@ public class ReplaceTests
     public void ReplaceChar()
     {
         using var text = new TextBuilder();
-        text.Write(TestData.LoremIpsum);
+        text.Append(TestData.LoremIpsum);
         text.Length.Should().Be(TestData.LoremIpsum.Length);
         text.Count(ch => ch == 'o').Should().Be(4);
         text.Count(ch => ch == '.').Should().Be(1);
@@ -66,7 +64,7 @@ public class ReplaceTests
     public void ReplaceStringExact()
     {
         using var text = new TextBuilder();
-        text.Write(TestData.LoremIpsum);
+        text.Append(TestData.LoremIpsum);
         text.Length.Should().Be(TestData.LoremIpsum.Length);
         text.Count(ch => ch == 'o').Should().Be(4);
         text.Count(ch => ch == '.').Should().Be(1);
@@ -92,7 +90,7 @@ public class ReplaceTests
     public void ReplaceStringShrink()
     {
         using var text = new TextBuilder();
-        text.Write(TestData.Stutter);
+        text.Append(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "th");
         thCount.Should().Be(3);
@@ -107,7 +105,7 @@ public class ReplaceTests
     public void ReplaceStringShrinkIgnoreCase()
     {
         using var text = new TextBuilder();
-        text.Write(TestData.Stutter);
+        text.Append(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "TH", StringComparison.OrdinalIgnoreCase);
         thCount.Should().Be(4);
@@ -122,7 +120,7 @@ public class ReplaceTests
     public void ReplaceStringGrow()
     {
         using var text = new TextBuilder();
-        text.Write(TestData.Stutter);
+        text.Append(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "th");
         thCount.Should().Be(3);
@@ -137,7 +135,7 @@ public class ReplaceTests
     public void ReplaceStringGrowIgnoreCase()
     {
         using var text = new TextBuilder();
-        text.Write(TestData.Stutter);
+        text.Append(TestData.Stutter);
         text.Length.Should().Be(TestData.Stutter.Length);
         int thCount = CountInstances(text.Written, "th", StringComparison.OrdinalIgnoreCase);
         thCount.Should().Be(4);

@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
-namespace Jay.Text;
+namespace Jay.Text.Utilities;
 
 public static class Validate
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Index(int available, int index, 
+    public static void Index(int available, int index,
         [CallerArgumentExpression(nameof(index))] string? indexName = null)
     {
         if ((uint)index < available) return;
@@ -33,7 +32,7 @@ public static class Validate
         throw new ArgumentOutOfRangeException(rangeName, range,
             $"{rangeName} {range} must be between 0 and {available - 1}");
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Range(int available, int start, int length,
         [CallerArgumentExpression(nameof(start))] string? startName = null,
@@ -46,7 +45,7 @@ public static class Validate
     }
 
 
-    public static void Insert(int available, int index, 
+    public static void Insert(int available, int index,
         [CallerArgumentExpression(nameof(index))] string? indexName = null)
     {
         if ((uint)index <= available) return;

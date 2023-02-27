@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net7.0;netstandard2.1;netstandard2.0;net48</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>Jay.Text</AssemblyName>
         <RootNamespace>Jay.Text</RootNamespace>
@@ -70,13 +70,4 @@
         </PackageReference>
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
     </ItemGroup>
-
-    <ItemGroup>
-        <Using Include="System" />
-        <Using Include="System.Collections" />
-        <Using Include="System.Collections.Generic" />
-        <Using Include="System.Linq" />
-        <Using Include="Jay.Text.Extensions" />
-    </ItemGroup>
-
 </Project>

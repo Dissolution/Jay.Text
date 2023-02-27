@@ -1,6 +1,4 @@
 ﻿#if NET6_0_OR_GREATER
-using System.Runtime.CompilerServices;
-
 namespace Jay.Text;
 
 [InterpolatedStringHandler]
@@ -11,7 +9,8 @@ public ref struct InterpolatedTextBuilder<TBuilder>
 
     public InterpolatedTextBuilder(int literalLength, int formattedCount, TBuilder textBuilder)
     {
-        _builder = textBuilder ?? throw new ArgumentNullException(nameof(textBuilder));
+        ArgumentNullException.ThrowIfNull(textBuilder);
+        _builder = textBuilder;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -35,16 +34,13 @@ public ref struct InterpolatedTextBuilder<TBuilder>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AppendFormatted<T>(T value, string? format)
     {
-        _builder.Append<T>(value, format);
+        _builder.Format<T>(value, format);
     }
 
     public override bool Equals(object? obj) => throw new NotSupportedException();
 
     public override int GetHashCode() => throw new NotSupportedException();
 
-    public override string ToString()
-    {
-        return _builder.ToString();
-    }
+    public override string ToString() => _builder.ToString();
 }
 #endif

@@ -1,4 +1,6 @@
-﻿namespace Jay.Text.Comparision;
+﻿using Jay.Text.Utilities;
+
+namespace Jay.Text.Comparision;
 
 /// <inheritdoc />
 /// <summary>
@@ -59,8 +61,8 @@ public class AlphanumericTextComparer : TextComparer
                 int.TryParse(leftChunk, out int leftChunkValue) &&
                 int.TryParse(rightChunk, out int rightChunkValue))
 #else
-                int.TryParse(leftChunk.AsString(), out int leftChunkValue) &&
-                int.TryParse(rightChunk.AsString(), out int rightChunkValue))
+                int.TryParse(leftChunk.ToString(), out int leftChunkValue) &&
+                int.TryParse(rightChunk.ToString(), out int rightChunkValue))
 #endif
             {
                 if (leftChunkValue < rightChunkValue)
@@ -122,8 +124,8 @@ public class AlphanumericTextComparer : TextComparer
                 int.TryParse(leftChunk, out int leftChunkValue) &&
                 int.TryParse(rightChunk, out int rightChunkValue))
 #else
-                int.TryParse(leftChunk.AsString(), out int leftChunkValue) &&
-                int.TryParse(rightChunk.AsString(), out int rightChunkValue))
+                int.TryParse(leftChunk.ToString(), out int leftChunkValue) &&
+                int.TryParse(rightChunk.ToString(), out int rightChunkValue))
 #endif
             {
                 if (leftChunkValue < rightChunkValue)

@@ -1,7 +1,28 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿
+/* Unmerged change from project 'Text (netstandard2.1)'
+Before:
+using Jay.Text.Utilities;
+After:
+using Jay.Text.Text;
+using Jay.Text.Buffer;
+using Jay.Text.Utilities;
+*/
+using Jay.Text.Utilities;
 
 namespace Jay.Text;
+
+public delegate void TextBuilderAction<in TBuilder>(TBuilder builder)
+    where TBuilder : TextBuilder<TBuilder>;
+
+public delegate void TextBuilderValueAction<in TBuilder, in TValue>(TBuilder builder, TValue value)
+    where TBuilder : TextBuilder<TBuilder>;
+
+public delegate void TextBuilderValueIndexAction<in TBuilder, in TValue>(TBuilder builder, TValue value, int index)
+    where TBuilder : TextBuilder<TBuilder>;
+
+public delegate void TextBuilderTextAction<in TBuilder>(TBuilder builder, ReadOnlySpan<char> text)
+    where TBuilder : TextBuilder<TBuilder>;
+
 
 public sealed class TextBuilder : TextBuilder<TextBuilder>
 {
@@ -10,25 +31,14 @@ public sealed class TextBuilder : TextBuilder<TextBuilder>
     }
 }
 
-public abstract class TextBuilder<TBuilder> : IDisposable
+public abstract class TextBuilder<TBuilder> : TextBuffer
     where TBuilder : TextBuilder<TBuilder>
 {
-    protected readonly CharArrayBuilder _charArrayBuilder;
     protected readonly TBuilder _this;
-
-    public int Length
-    {
-        get => _charArrayBuilder.Length;
-        set => _charArrayBuilder.Length = value;
-    }
-
-    public Span<char> Written => _charArrayBuilder.Written;
-    public Span<char> Available => _charArrayBuilder.Available;
 
     protected TextBuilder()
         : base()
     {
-        _charArrayBuilder = new CharArrayBuilder();
         _this = (TBuilder)this;
     }
 
@@ -37,10 +47,10 @@ public abstract class TextBuilder<TBuilder> : IDisposable
         int start = Length;
         textBuilderAction(_this);
         int end = Length;
-        return _charArrayBuilder.CharSpan[new Range(start, end)];
+        return Written[new Range(start: start, end: end)];
     }
 
-#region New Line
+    #region New Line
     public virtual TBuilder NewLine()
     {
         return Append(TextHelper.NewLineSpan);
@@ -54,51 +64,51 @@ public abstract class TextBuilder<TBuilder> : IDisposable
         }
         return _this;
     }
-#endregion
+    #endregion
 
-#region Append
+    #region Append
     public virtual TBuilder Append(char ch)
     {
-        _charArrayBuilder.Write(ch);
+        this.Write(ch);
         return _this;
     }
 
     public virtual TBuilder Append(string? str)
     {
-        _charArrayBuilder.Write(str);
+        this.Write(str);
         return _this;
     }
 
     public virtual TBuilder Append(ReadOnlySpan<char> text)
     {
-        _charArrayBuilder.Write(text);
+        this.Write(text);
         return _this;
     }
 
     public virtual TBuilder Append<T>(T? value)
     {
-        _charArrayBuilder.Write<T>(value);
+        this.Write(value);
         return _this;
     }
 
-    public virtual TBuilder Format<T>(T? value, string? format)
+    public virtual TBuilder Format<T>(T? value, string? format, IFormatProvider? provider = null)
     {
-        _charArrayBuilder.Write<T>(value, format);
+        this.WriteFormat(value, format, provider);
         return _this;
     }
 
     public TBuilder AppendLine(char ch) => Append(ch).NewLine();
     public TBuilder AppendLine(string? str) => Append(str).NewLine();
     public TBuilder AppendLine(ReadOnlySpan<char> text) => Append(text).NewLine();
-    public TBuilder AppendLine<T>(T? value) => Append<T>(value).NewLine();
-#endregion
+    public TBuilder AppendLine<T>(T? value) => Append(value).NewLine();
+    #endregion
 
-#region Align
+    #region Align
     public TBuilder Align(char ch, int width, Alignment alignment)
     {
         if (width < 1)
             throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be 1 or greater");
-        var appendSpan = _charArrayBuilder.Allocate(width);
+        var appendSpan = Allocate(width);
         if (alignment == Alignment.Left)
         {
             appendSpan[0] = ch;
@@ -125,7 +135,7 @@ public abstract class TextBuilder<TBuilder> : IDisposable
                 }
                 else // Left|Center / Default|Center
                 {
-                    padding = (width / 2) - 1;
+                    padding = width / 2 - 1;
                 }
             }
             appendSpan[..padding].Fill(' ');
@@ -141,7 +151,7 @@ public abstract class TextBuilder<TBuilder> : IDisposable
         int textLen = text.Length;
         if (textLen == 0)
         {
-            _charArrayBuilder.Allocate(width).Fill(' ');
+            Allocate(width).Fill(' ');
             return _this;
         }
         int spaces = width - textLen;
@@ -149,19 +159,19 @@ public abstract class TextBuilder<TBuilder> : IDisposable
             throw new ArgumentOutOfRangeException(nameof(width), width, $"Width must be {textLen} or greater");
         if (spaces == 0)
         {
-            _charArrayBuilder.Write(text);
+            this.Write(text);
             return _this;
         }
-        var appendSpan = _charArrayBuilder.Allocate(width);
+        var appendSpan = Allocate(width);
         if (alignment == Alignment.Left)
         {
-            TextHelper.Unsafe.CopyBlock(text, appendSpan, textLen);
+            TextHelper.Unsafe.CopyTo(text, appendSpan, textLen);
             appendSpan[textLen..].Fill(' ');
         }
         else if (alignment == Alignment.Right)
         {
             appendSpan[..spaces].Fill(' ');
-            TextHelper.Unsafe.CopyBlock(text, appendSpan[spaces..], textLen);
+            TextHelper.Unsafe.CopyTo(text, appendSpan[spaces..], textLen);
         }
         else // Center
         {
@@ -184,14 +194,14 @@ public abstract class TextBuilder<TBuilder> : IDisposable
                 }
             }
             appendSpan[..frontPadding].Fill(' ');
-            TextHelper.Unsafe.CopyBlock(text, appendSpan[frontPadding..], textLen);
+            TextHelper.Unsafe.CopyTo(text, appendSpan[frontPadding..], textLen);
             appendSpan[(frontPadding + textLen)..].Fill(' ');
         }
         return _this;
     }
-#endregion
+    #endregion
 
-#region Format
+    #region Format
     protected void FormatHelper(ReadOnlySpan<char> format, object?[] args)
     {
         // Undocumented exclusive limits on the range for Argument Hole Index
@@ -216,12 +226,12 @@ public abstract class TextBuilder<TBuilder> : IDisposable
                 int countUntilNextBrace = remainder.IndexOfAny('{', '}');
                 if (countUntilNextBrace < 0)
                 {
-                    _charArrayBuilder.Write(remainder);
+                    this.Write(remainder);
                     return;
                 }
 
                 // Append the text until the brace.
-                _charArrayBuilder.Write(remainder.Slice(0, countUntilNextBrace));
+                this.Write(remainder.Slice(0, countUntilNextBrace));
                 pos += countUntilNextBrace;
 
                 // Get the brace.
@@ -231,7 +241,7 @@ public abstract class TextBuilder<TBuilder> : IDisposable
                 ch = moveNext(format, ref pos);
                 if (brace == ch)
                 {
-                    _charArrayBuilder.Write(ch);
+                    this.Write(ch);
                     pos++;
                     continue;
                 }
@@ -349,7 +359,7 @@ public abstract class TextBuilder<TBuilder> : IDisposable
         static char moveNext(ReadOnlySpan<char> format, ref int pos)
         {
             pos++;
-            if (pos < format.Length) 
+            if (pos < format.Length)
                 return format[pos];
             throw createFormatException(format, pos, "Attempted to move past final character");
         }
@@ -385,6 +395,8 @@ public abstract class TextBuilder<TBuilder> : IDisposable
         return _this;
     }
 
+    public TBuilder FormatLine(string format, params object?[] args) => Format(format, args).NewLine();
+
     public virtual TBuilder Format(
         [InterpolatedStringHandlerArgument("")]
         ref InterpolatedTextBuilder<TBuilder> interpolatedString)
@@ -405,18 +417,32 @@ public abstract class TextBuilder<TBuilder> : IDisposable
         FormatHelper(format.CharSpan, args);
         return _this;
     }
+
     public virtual TBuilder Format(FormattableString formattableString)
     {
         FormatHelper(formattableString.Format.AsSpan(), formattableString.GetArguments());
         return _this;
     }
+
     public TBuilder FormatLine(NonFormattableString format, params object?[] args) => Format(format, args).NewLine();
+
     public TBuilder FormatLine(FormattableString formattableString) => Format(formattableString).NewLine();
 #endif
-#endregion
+    #endregion
 
 
-#region Enumerate
+    #region Enumerate
+    public TBuilder Enumerate(
+        TextSplitEnumerable splitEnumerable,
+        TextBuilderTextAction<TBuilder> perSplitSection)
+    {
+        foreach (var splitSection in splitEnumerable)
+        {
+            perSplitSection(_this, splitSection);
+        }
+        return _this;
+    }
+
     public TBuilder Enumerate<T>(IEnumerable<T> values, TextBuilderValueAction<TBuilder, T> perValue)
     {
         foreach (var value in values)
@@ -451,10 +477,10 @@ public abstract class TextBuilder<TBuilder> : IDisposable
     }
 
     public TBuilder EnumerateAppend<T>(IEnumerable<T> enumerable) =>
-        Enumerate(enumerable, static (tb, v) => tb.Append<T>(v));
+        Enumerate(enumerable, static (tb, v) => tb.Append(v));
 
     public TBuilder EnumerateAppendLines<T>(IEnumerable<T> enumerable) =>
-        Enumerate(enumerable, static (tb, v) => tb.AppendLine<T>(v));
+        Enumerate(enumerable, static (tb, v) => tb.AppendLine(v));
 
     public TBuilder EnumerateLines<T>(IEnumerable<T> enumerable, TextBuilderValueAction<TBuilder, T> perValue) =>
         Enumerate(enumerable,
@@ -463,9 +489,42 @@ public abstract class TextBuilder<TBuilder> : IDisposable
                 perValue(tb, v);
                 tb.NewLine();
             });
-#endregion
+    #endregion
 
-#region Delimit
+    #region Delimit
+    public TBuilder Delimit(
+        ReadOnlySpan<char> delimiter,
+        TextSplitEnumerable splitEnumerable,
+        TextBuilderTextAction<TBuilder> perSplitSection)
+    {
+        var splitEnumerator = splitEnumerable.GetEnumerator();
+        if (!splitEnumerator.MoveNext()) return _this;
+        perSplitSection(_this, splitEnumerator.Current);
+        while (splitEnumerator.MoveNext())
+        {
+            Append(delimiter);
+            perSplitSection(_this, splitEnumerator.Current);
+        }
+        return _this;
+    }
+
+    public TBuilder Delimit(
+        TextBuilderAction<TBuilder> delimit,
+        TextSplitEnumerable splitEnumerable,
+        TextBuilderTextAction<TBuilder> perSplitSection)
+    {
+        var splitEnumerator = splitEnumerable.GetEnumerator();
+        if (!splitEnumerator.MoveNext()) return _this;
+        perSplitSection(_this, splitEnumerator.Current);
+        while (splitEnumerator.MoveNext())
+        {
+            delimit(_this);
+            perSplitSection(_this, splitEnumerator.Current);
+        }
+        return _this;
+    }
+
+
     public TBuilder Delimit<T>(TextBuilderAction<TBuilder> delimit, IEnumerable<T> values, TextBuilderValueAction<TBuilder, T> perValue)
     {
         if (values is IList<T> list)
@@ -543,78 +602,168 @@ public abstract class TextBuilder<TBuilder> : IDisposable
     {
         return Delimit(static w => w.NewLine(), values, perValueIndex);
     }
-#endregion
+    #endregion
 
-#region Replace
+    #region Replace
     public TBuilder Replace(char oldChar, char newChar)
     {
-        var written = _charArrayBuilder.Written;
-        for (var i = written.Length; i >= 0; i--)
+        var written = Written;
+        ref char ch = ref CompatExtensions.NullRef<char>();
+        for (var i = written.Length - 1; i >= 0; i--)
         {
-            if (written[i] == oldChar)
-                written[i] = newChar;
+            ch = ref written[i];
+            if (ch == oldChar)
+                ch = newChar;
         }
         return _this;
     }
 
-    public TBuilder Replace(ReadOnlySpan<char> oldText, ReadOnlySpan<char> newText)
+    public TBuilder Replace(ReadOnlySpan<char> oldText, ReadOnlySpan<char> newText, StringComparison comparison = StringComparison.Ordinal)
     {
         int oldTextLen = oldText.Length;
+        if (oldTextLen == 0)
+            throw new ArgumentException("Cannot replace null or empty text", nameof(oldText));
         int newTextLen = newText.Length;
+        // Length zero is okay
+
+
+        // Three possible modes:
+        var written = Written;
+
         // Swap
         if (oldTextLen == newTextLen)
         {
-            var written = _charArrayBuilder.Written;
             int index = 0;
-            while ((index = written.IndexOf(oldText, index)) != -1)
+            while ((index = written.NextIndexOf(oldText, index, comparison)) != -1)
             {
                 TextHelper.Unsafe.CopyBlock(
                     in newText.GetPinnableReference(),
                     ref written[index],
-                    oldTextLen);
+                    newTextLen);
+                // Increase index to not continue swapping the same thing forever
+                index++;
             }
             return _this;
         }
+
         // Shrink
-        else if (oldTextLen > newTextLen)
+        if (newTextLen < oldTextLen)
         {
-            var written = _charArrayBuilder.Written;
-            int index = 0;
-            while ((index = written.IndexOf(oldText, index)) != -1)
+            int writePos = 0;
+            var rangeSplit = written.RangeSplit(oldText, stringComparison: comparison);
+            var e = rangeSplit.GetEnumerator();
+            while (e.MoveNext())
             {
-                TextHelper.Unsafe.CopyBlock(
-                    in newText.GetPinnableReference(),
-                    ref written[index],
-                    oldTextLen);
+                // Write the range
+                Range range = e.Current;
+                (int offset, int length) = range.GetOffsetAndLength(Length);
+                TextHelper.Unsafe.CopyTo(written.Slice(offset, length), written.Slice(writePos), length);
+                writePos += length;
+
+                // If we're at end, we are done
+                if (e.AtEnd)
+                {
+                    Debug.Assert(offset + length == Length);
+                    Length = writePos;
+                    return _this;
+                }
+
+                // Write our new text
+                TextHelper.Unsafe.CopyTo(newText, written.Slice(writePos), newTextLen);
+                writePos += newTextLen;
             }
+
+            // Done
+            Length = writePos;
             return _this;
         }
+
         // Expand
-        else
+        Debug.Assert(newTextLen > oldTextLen);
         {
-            throw new NotImplementedException();
+            // Move current to a buffer
+            Span<char> buffer = stackalloc char[Length];
+            TextHelper.Unsafe.CopyTo(written, buffer, Length);
+            // Set us to zero
+            Length = 0;
+
+            int writePos = 0;
+            var rangeSplit = buffer.RangeSplit(oldText, stringComparison: comparison);
+            var e = rangeSplit.GetEnumerator();
+            while (e.MoveNext())
+            {
+                // Write the range
+                Range range = e.Current;
+                (int offset, int length) = range.GetOffsetAndLength(buffer.Length);
+                this.Write(buffer.Slice(offset, length));
+                writePos += length;
+
+                // If we're at end, we are done
+                if (e.AtEnd)
+                {
+                    Debug.Assert(offset + length == buffer.Length);
+                    //Length = writePos;
+                    Debug.Assert(Length == writePos);
+                    return _this;
+                }
+
+                // Write our new text
+                this.Write(newText);
+                writePos += newTextLen;
+                Debug.Assert(Length == writePos);
+            }
+
+            // Done
+            //Length = writePos;
+            Debug.Assert(Length == writePos);
+            return _this;
         }
     }
-    
-    public TBuilder Replace(ReadOnlySpan<char> oldText, ReadOnlySpan<char> newText, StringComparison stringComparison)
-    {
-        throw new NotImplementedException();
-    }
-    
-    public TBuilder Replace(string oldText, string? newText)
-    {
-        throw new NotImplementedException();
-    }
-    
-    public TBuilder Replace(string oldText, string? newText, StringComparison stringComparison)
-    {
-        throw new NotImplementedException();
-    }
-#endregion
 
-    public virtual void Dispose() => _charArrayBuilder.Dispose();
+    public TBuilder Replace(string oldText, string? newText, StringComparison comparison = StringComparison.Ordinal)
+        => Replace(oldText.AsSpan(), newText.AsSpan(), comparison);
 
-    public string ToStringAndDispose() => _charArrayBuilder.ToStringAndDispose();
+    #endregion
 
-    public override string ToString() => _charArrayBuilder.ToString();
+    public TBuilder TrimStart()
+    {
+        int start = 0;
+        for (; start < Length; start++)
+        {
+            if (!char.IsWhiteSpace(Written[start]))
+            {
+                break;
+            }
+        }
+
+        if (start > 0)
+        {
+            RemoveFirst(start);
+        }
+
+        return _this;
+    }
+
+    public TBuilder TrimEnd()
+    {
+        int end = Length - 1;
+
+        for (; end >= 0; end--)
+        {
+            if (!char.IsWhiteSpace(Written[end]))
+            {
+                break;
+            }
+        }
+
+        Length = end + 1;
+        return _this;
+    }
+
+    public TBuilder Clear()
+    {
+        // Nice hack
+        Length = 0;
+        return _this;
+    }
 }

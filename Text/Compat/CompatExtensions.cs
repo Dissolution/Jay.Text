@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Jay.Text.Compat;
+﻿namespace Jay.Text.Compat;
 
 internal static class CompatExtensions
 {
@@ -49,4 +47,16 @@ internal static class CompatExtensions
         }
     }
 #endif
+
+    public static ref T NullRef<T>()
+    {
+#if NET48 || NETSTANDARD2_0
+        unsafe
+        {
+            return ref Unsafe.AsRef<T>(UIntPtr.Zero.ToPointer());
+        }
+#else
+        return ref Unsafe.NullRef<T>();
+#endif
+    }
 }

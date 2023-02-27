@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Jay.Text.Utilities;
 
 namespace Jay.Text.Extensions;
 
@@ -14,7 +15,7 @@ public enum Casing
 
 public static class TextExtensions
 {
-    public static int IndexOf(this ReadOnlySpan<char> text, char ch, int startIndex)
+    public static int NextIndexOf(this ReadOnlySpan<char> text, char ch, int startIndex)
     {
         if ((uint)startIndex >= text.Length)
             return -1;
@@ -23,50 +24,20 @@ public static class TextExtensions
         return (index + startIndex);
     }
     
-    public static int IndexOf(this ReadOnlySpan<char> text, ReadOnlySpan<char> searchText, int startIndex)
+    public static int NextIndexOf(this ReadOnlySpan<char> text, ReadOnlySpan<char> searchText, int startIndex, StringComparison comparison = StringComparison.Ordinal)
     {
         if ((uint)startIndex >= text.Length)
             return -1;
-        var index = text.Slice(startIndex).IndexOf(searchText);
+        var index = text.Slice(startIndex).IndexOf(searchText, comparison);
         if (index == -1) return -1;
         return (index + startIndex);
     }
+
+    public static int NextIndexOf(this Span<char> text, char ch, int startIndex) =>
+        NextIndexOf((ReadOnlySpan<char>)text, ch, startIndex);
     
-    public static int IndexOf(this ReadOnlySpan<char> text, ReadOnlySpan<char> searchText, StringComparison stringComparison, int startIndex)
-    {
-        if ((uint)startIndex >= text.Length)
-            return -1;
-        var index = text.Slice(startIndex).IndexOf(searchText, stringComparison);
-        if (index == -1) return -1;
-        return (index + startIndex);
-    }
-    
-    public static int IndexOf(this Span<char> text, char ch, int startIndex)
-    {
-        if ((uint)startIndex >= text.Length)
-            return -1;
-        var index = text.Slice(startIndex).IndexOf(ch);
-        if (index == -1) return -1;
-        return (index + startIndex);
-    }
-    
-    public static int IndexOf(this Span<char> text, ReadOnlySpan<char> searchText, int startIndex)
-    {
-        if ((uint)startIndex >= text.Length)
-            return -1;
-        var index = text.Slice(startIndex).IndexOf(searchText);
-        if (index == -1) return -1;
-        return (index + startIndex);
-    }
-    
-    public static int IndexOf(this Span<char> text, ReadOnlySpan<char> searchText, StringComparison stringComparison, int startIndex)
-    {
-        if ((uint)startIndex >= text.Length)
-            return -1;
-        var index = text.Slice(startIndex).IndexOf(searchText, stringComparison);
-        if (index == -1) return -1;
-        return (index + startIndex);
-    }
+    public static int NextIndexOf(this Span<char> text, ReadOnlySpan<char> searchText, int startIndex, StringComparison comparison = StringComparison.Ordinal)
+        => NextIndexOf((ReadOnlySpan<char>)text, searchText, startIndex, comparison);
     
     public static string ToCasedString(this string? text, Casing casing)
     {
@@ -92,7 +63,7 @@ public static class TextExtensions
                     buffer[i] = char.ToLower(text[i]);
                 }
 
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Upper:
             {
@@ -102,7 +73,7 @@ public static class TextExtensions
                     buffer[i] = char.ToUpper(text[i]);
                 }
 
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Camel:
             {
@@ -111,9 +82,9 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Pascal:
             {
@@ -122,14 +93,14 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Title:
             {
                 // Have to allocate
-                return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text.AsString());
+                return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text.ToString());
             }
             case Casing.Field:
             {
@@ -139,12 +110,12 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2), textLen-1);
 #endif
-                return buffer.AsString();
+                return buffer.ToString();
             }
             default:
-                return text.AsString();
+                return text.ToString();
         }
     }
 
@@ -173,7 +144,7 @@ public static class TextExtensions
                     buffer[i] = textInfo.ToLower(text[i]);
                 }
 
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Upper:
             {
@@ -183,7 +154,7 @@ public static class TextExtensions
                     buffer[i] = textInfo.ToUpper(text[i]);
                 }
 
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Camel:
             {
@@ -192,9 +163,9 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Pascal:
             {
@@ -203,14 +174,14 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
 #endif
-                return buffer.AsString();
+                return buffer.ToString();
             }
             case Casing.Title:
             {
                 // Have to allocate
-                return textInfo.ToTitleCase(text.AsString());
+                return textInfo.ToTitleCase(text.ToString());
             }
             case Casing.Field:
             {
@@ -220,12 +191,12 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyBlock(text.Slice(1), buffer.Slice(2), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2), textLen-1);
 #endif
-                return buffer.AsString();
+                return buffer.ToString();
             }
             default:
-                return text.AsString();
+                return text.ToString();
         }
     }
 }

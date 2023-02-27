@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using Jay.Text.Compat;
+﻿using System.Globalization;
+using Jay.Text.Utilities;
 
 namespace Jay.Text;
 
@@ -37,7 +37,7 @@ public ref struct CharSpanReader
         set => _index = value.Clamp(0, _text.Length);
     }
 
-    public ReadOnlySpan<char> Read
+    public ReadOnlySpan<char> Seen
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _text.Slice(0, _index);
@@ -61,13 +61,12 @@ public ref struct CharSpanReader
         _index = 0;
     }
 
+#region Peek
+
     public char Peek()
     {
-        if (_index < Length)
-        {
-            return _text[_index];
-        }
-        throw new InvalidOperationException($"There are no characters left to read");
+        if (TryPeek(out char ch)) return ch;
+        throw new InvalidOperationException("Cannot Peek(): No characters available");
     }
 
     public bool TryPeek(out char ch)
@@ -77,15 +76,15 @@ public ref struct CharSpanReader
             ch = _text[_index];
             return true;
         }
+
         ch = default;
         return false;
     }
 
     public ReadOnlySpan<char> Peek(int count)
     {
-        if (!TryPeek(count, out var text))
-            throw new InvalidOperationException($"There are not {count} characters available to read");
-        return text;
+        if (TryPeek(count, out var text)) return text;
+        throw new InvalidOperationException($"Cannot Peek({count}): Only {Available.Length} characters available");
     }
 
     public bool TryPeek(int count, out ReadOnlySpan<char> text)
@@ -95,15 +94,19 @@ public ref struct CharSpanReader
             text = _text.Slice(_index, count);
             return true;
         }
+
         text = default;
         return false;
     }
 
+#endregion
+
+#region Take
+
     public char Take()
     {
-        if (!TryTake(out char ch))
-            throw new InvalidOperationException();
-        return ch;
+        if (TryTake(out char ch)) return ch;
+        throw new InvalidOperationException("Cannot Take(): No characters available");
     }
 
     public bool TryTake(out char ch)
@@ -116,115 +119,66 @@ public ref struct CharSpanReader
 
     public ReadOnlySpan<char> Take(int count)
     {
-        if (!TryTake(count, out var text))
-            throw new InvalidOperationException();
-        return text;
+        if (TryTake(count, out var text)) return text;
+        throw new InvalidOperationException($"Cannot Take({count}): Only {Available.Length} characters available");
     }
 
     public bool TryTake(int count, out ReadOnlySpan<char> text)
     {
         var result = TryPeek(count, out text);
         if (result)
-            _index+=count;
-        return result;
-    }
-
-    public void Skip()
-    {
-        if (!TrySkip())
-            throw new InvalidOperationException();
-    }
-
-    public bool TrySkip()
-    {
-        var result = TryPeek(out _);
-        if (result)
-            _index++;
-        return result;
-    }
-
-    public void Skip(int count)
-    {
-        if (!TrySkip(count))
-            throw new InvalidOperationException();
-    }
-
-    public bool TrySkip(int count)
-    {
-        var result = TryPeek(count, out _);
-        if (result)
             _index += count;
         return result;
     }
 
+#endregion
 
-    public void SkipWhiteSpace()
+#region Skip
+
+    public void Skip()
     {
-        var text = _text;
-        var i = _index;
-        var capacity = Length;
-        while (i < capacity && char.IsWhiteSpace(text[i]))
-        {
-            i++;
-        }
-        _index = i;
+        if (TrySkip()) return;
+        throw new InvalidOperationException("Cannot Skip(): No characters available");
     }
 
-    public ReadOnlySpan<char> TakeWhiteSpace()
+    public bool TrySkip()
     {
-        var text = _text;
-        var i = _index;
-        var start = i;
-        var capacity = Length;
-        while (i < capacity && char.IsWhiteSpace(text[i]))
-        {
-            i++;
-        }
-
-        _index = i;
-        return _text[start..i];
+        return TryTake(out _);
     }
 
-    public void SkipDigits()
+    public void Skip(int count)
     {
-        var text = _text;
-        var i = _index;
-        var capacity = Length;
-        while (i < capacity && char.IsDigit(text[i]))
-        {
-            i++;
-        }
-
-        _index = i;
+        if (TrySkip(count)) return;
+        throw new InvalidOperationException($"Cannot Skip({count}): Only {Available.Length} characters available");
     }
 
-    public ReadOnlySpan<char> TakeDigits()
+    public bool TrySkip(int count)
     {
-        var text = _text;
-        var i = _index;
-        var start = i;
-        var capacity = Length;
-        while (i < capacity && char.IsDigit(text[i]))
-        {
-            i++;
-        }
-
-        _index = i;
-        return _text[start..i];
+        return TryTake(count, out _);
     }
 
-    public void SkipWhile(Func<char, bool> predicate)
-    {
-        var text = _text;
-        var i = _index;
-        var capacity = Length;
-        while (i < capacity && predicate(text[i]))
-        {
-            i++;
-        }
+#endregion
 
-        _index = i;
-    }
+#region Skip|Take While
+
+    public void SkipWhiteSpace() => TakeWhiteSpace();
+
+    public ReadOnlySpan<char> TakeWhiteSpace() => TakeWhile(static ch => char.IsWhiteSpace(ch));
+
+    public void SkipDigits() => TakeDigits();
+
+    public ReadOnlySpan<char> TakeDigits() => TakeWhile(static ch => ch.IsAsciiDigit());
+
+    public void SkipLetters() => TakeLetters();
+
+    public ReadOnlySpan<char> TakeLetters() => TakeWhile(static ch => ch.IsAsciiLetter());
+
+    public void SkipWhile(char matchChar) => TakeWhile(matchChar);
+
+    public ReadOnlySpan<char> TakeWhile(char matchChar) => TakeWhile(ch => ch == matchChar);
+
+
+    public void SkipWhile(Func<char, bool> predicate) => TakeWhile(predicate);
 
     public ReadOnlySpan<char> TakeWhile(Func<char, bool> predicate)
     {
@@ -241,64 +195,48 @@ public ref struct CharSpanReader
         return _text[start..i];
     }
 
-    public void SkipUntil(char matchChar)
-    {
-        var text = _text;
-        var i = _index;
-        var capacity = Length;
-        while (i < capacity && text[i] != matchChar)
-        {
-            i++;
-        }
 
-        _index = i;
-    }
+    public void SkipWhile(ReadOnlySpan<char> matchText) => TakeWhile(matchText);
 
-    public ReadOnlySpan<char> TakeUntil(char matchChar)
+    public ReadOnlySpan<char> TakeWhile(ReadOnlySpan<char> matchText,
+        StringComparison comparison = StringComparison.Ordinal)
     {
         var text = _text;
         var i = _index;
         var start = i;
         var capacity = Length;
-        while (i < capacity && text[i] != matchChar)
+        while (i < capacity && text[i..].StartsWith(matchText, comparison))
         {
-            i++;
+            i += matchText.Length;
         }
 
         _index = i;
         return _text[start..i];
     }
-    
-    public ReadOnlySpan<char> TakeUntil(char firstMatch, char secondMatch)
-    {
-        var text = _text;
-        var i = _index;
-        var start = i;
-        var capacity = Length;
-        char ch;
-        while (i < capacity)
-        {
-            ch = text[i];
-            if (ch == firstMatch || ch == secondMatch)
-                break;
-            i++;
-        }
-        _index = i;
-        return text[start..i];
-    }
 
-    public void SkipUntil(Func<char, bool> predicate)
-    {
-        var text = _text;
-        var i = _index;
-        var capacity = Length;
-        while (i < capacity && !predicate(text[i]))
-        {
-            i++;
-        }
+#endregion
 
-        _index = i;
-    }
+
+#region Skip|Take Until
+
+    // public void SkipWhiteSpace() => TakeWhiteSpace();
+    //
+    // public ReadOnlySpan<char> TakeWhiteSpace() => TakeWhile(static ch => char.IsWhiteSpace(ch));
+    //
+    // public void SkipDigits() => TakeDigits();
+    //
+    // public ReadOnlySpan<char> TakeDigits() => TakeWhile(static ch => char.IsAsciiDigit(ch));
+    //
+    // public void SkipLetters() => TakeLetters();
+    //
+    // public ReadOnlySpan<char> TakeLetters() => TakeWhile(static ch => ch.IsAsciiLetter());
+
+    public void SkipUntil(char matchChar) => TakeUntil(matchChar);
+
+    public ReadOnlySpan<char> TakeUntil(char matchChar) => TakeUntil(ch => ch == matchChar);
+
+
+    public void SkipUntil(Func<char, bool> predicate) => TakeUntil(predicate);
 
     public ReadOnlySpan<char> TakeUntil(Func<char, bool> predicate)
     {
@@ -315,26 +253,34 @@ public ref struct CharSpanReader
         return _text[start..i];
     }
 
-    public void SkipAny(params char[] chars)
-    {
-        var text = _text;
-        var i = _index;
-        var capacity = Length;
-        while (i < capacity && Enumerable.Contains(chars, text[i]))
-        {
-            i++;
-        }
 
-        _index = i;
-    }
+    public void SkipUntil(ReadOnlySpan<char> matchText) => TakeUntil(matchText);
 
-    public ReadOnlySpan<char> TakeAny(params char[] chars)
+    public ReadOnlySpan<char> TakeUntil(ReadOnlySpan<char> matchText,
+        StringComparison comparison = StringComparison.Ordinal)
     {
         var text = _text;
         var i = _index;
         var start = i;
         var capacity = Length;
-        while (i < capacity && Enumerable.Contains(chars, text[i]))
+        while (i < capacity && !text[i..].StartsWith(matchText, comparison))
+        {
+            i += matchText.Length;
+        }
+
+        _index = i;
+        return _text[start..i];
+    }
+
+#endregion
+
+    private ReadOnlySpan<char> TakeAny(CharSet charSet)
+    {
+        var text = _text;
+        var i = _index;
+        var start = i;
+        var capacity = Length;
+        while (i < capacity && charSet.Contains(text[i]))
         {
             i++;
         }
@@ -342,6 +288,11 @@ public ref struct CharSpanReader
         _index = i;
         return _text[start..i];
     }
+
+
+    public void SkipAny(params char[] chars) => TakeAny((CharSet)chars);
+
+    public ReadOnlySpan<char> TakeAny(params char[] chars) => TakeAny((CharSet)chars);
 
     public void SkipAny(HashSet<char> chars)
     {
@@ -366,6 +317,7 @@ public ref struct CharSpanReader
         {
             i++;
         }
+
         _index = i;
         return _text[start..i];
     }
@@ -377,7 +329,7 @@ public ref struct CharSpanReader
     public override string ToString()
     {
         var builder = new CharSpanBuilder();
-        builder.Write(Read);
+        builder.Write(Seen);
         builder.Write("|");
         builder.Write(Available);
         return builder.ToStringAndDispose();
