@@ -2,7 +2,7 @@
 
 namespace Jay.Text.Utilities;
 
-public static class Validate
+internal static class Validate
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Index(int available, int index,
@@ -32,7 +32,7 @@ public static class Validate
         throw new ArgumentOutOfRangeException(rangeName, range,
             $"{rangeName} {range} must be between 0 and {available - 1}");
     }
-
+  
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Range(int available, int start, int length,
         [CallerArgumentExpression(nameof(start))] string? startName = null,

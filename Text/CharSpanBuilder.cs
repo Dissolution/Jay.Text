@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
+
 using Jay.Text.Utilities;
+
 
 // ReSharper disable UnusedParameter.Local
 
@@ -121,7 +123,7 @@ public ref struct CharSpanBuilder
     }
 #endif
 
-#region Grow
+    #region Grow
     /// <summary>
     /// Grow the size of <see cref="_chars"/> to at least the specified <paramref name="minCapacity"/>.
     /// </summary>
@@ -133,10 +135,7 @@ public ref struct CharSpanBuilder
         Debug.Assert(minCapacity > Capacity);
 
         char[] newArray = ArrayPool<char>.Shared.Rent(minCapacity);
-        TextHelper.Unsafe.CopyBlock(
-            in _chars.GetPinnableReference(),
-            ref newArray.GetPinnableReference(),
-            _position);
+        TextHelper.Unsafe.CopyTo(_chars, newArray, _position);
 
         char[]? toReturn = _charArray;
         _chars = _charArray = newArray;
@@ -167,15 +166,12 @@ public ref struct CharSpanBuilder
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void GrowThenCopy(ReadOnlySpan<char> text)
+    private void GrowThenCopy(scoped ReadOnlySpan<char> text)
     {
         int index = _position;
         int len = text.Length;
         GrowCore(BuilderHelper.GetGrowByCapacity(Capacity, len));
-        TextHelper.Unsafe.CopyBlock(
-            in text.GetPinnableReference(),
-            ref _chars[index],
-            len);
+        TextHelper.Unsafe.CopyTo(text, _chars[index..], len);
         _position = index + len;
     }
 
@@ -191,9 +187,9 @@ public ref struct CharSpanBuilder
             len);
         _position = index + len;
     }
-#endregion
+    #endregion
 
-#region Interpolated String Handler implementations
+    #region Interpolated String Handler implementations
     /// <summary>
     /// Append a literal <see cref="string"/>
     /// </summary>
@@ -254,7 +250,7 @@ public ref struct CharSpanBuilder
     public void AppendFormatted(char ch) => Write(ch);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void AppendFormatted(ReadOnlySpan<char> text) => Write(text);
+    public void AppendFormatted(scoped ReadOnlySpan<char> text) => Write(text);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AppendFormatted(string? text) => Write(text);
@@ -264,7 +260,7 @@ public ref struct CharSpanBuilder
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public void AppendFormatted(object? value, string? format) => Format<object?>(value, format);
-#endregion
+    #endregion
 
     public void Write(char ch)
     {
@@ -280,8 +276,13 @@ public ref struct CharSpanBuilder
             GrowThenCopy(ch);
         }
     }
+    public void WriteLine(char ch)
+    {
+        Write(ch);
+        Write(TextHelper.NewLineSpan);
+    }
 
-    public void Write(ReadOnlySpan<char> text)
+    public void Write(scoped ReadOnlySpan<char> text)
     {
         if (TextHelper.TryCopyTo(text, Available))
         {
@@ -292,8 +293,15 @@ public ref struct CharSpanBuilder
             GrowThenCopy(text);
         }
     }
+    public void WriteLine(scoped ReadOnlySpan<char> text)
+    {
+        Write(text);
+        Write(TextHelper.NewLineSpan);
+    }
 
     public void Write(params char[] chars) => Write(chars.AsSpan());
+
+    public void WriteLine() => Write(TextHelper.NewLineSpan);
 
     public void Write(string? text)
     {
@@ -308,6 +316,11 @@ public ref struct CharSpanBuilder
                 GrowThenCopy(text);
             }
         }
+    }
+    public void WriteLine(string? text)
+    {
+        Write(text);
+        Write(TextHelper.NewLineSpan);
     }
 
     public void Write<T>(T? value)
@@ -340,6 +353,11 @@ public ref struct CharSpanBuilder
 
         Write(str);
     }
+    public void WriteLine<T>(T? value)
+    {
+        Write<T>(value);
+        Write(TextHelper.NewLineSpan);
+    }
 
     public void Format<T>(T? value, string? format, IFormatProvider? provider = null)
     {
@@ -371,7 +389,28 @@ public ref struct CharSpanBuilder
 
         Write(str);
     }
+    public void FormatLine<T>(T? value, string? format, IFormatProvider? provider = null)
+    {
+        Format<T>(value, format, provider);
+        Write(TextHelper.NewLineSpan);
+    }
 
+    public void Repeat(char ch, int count)
+    {
+        if (count > 0)
+        {
+            Span<char> buffer = stackalloc char[count];
+            buffer.Fill(' ');
+            if (TextHelper.TryCopyTo(buffer, Available))
+            {
+                _position += count;
+            }
+            else
+            {
+                GrowThenCopy(buffer);
+            }
+        }
+    }
 
     /// <summary>
     /// Returns any rented array to the pool.

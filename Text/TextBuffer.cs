@@ -361,7 +361,7 @@ namespace Jay.Text
             _position = curLen - length;
         }
 
-        public void Remove(Range range)
+        internal void Remove(Range range)
         {
             (int offset, int length) = range.GetOffsetAndLength(_position);
             Remove(offset, length);

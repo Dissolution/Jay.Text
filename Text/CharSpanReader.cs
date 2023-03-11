@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using Jay.Text.Utilities;
+﻿using Jay.Text.Utilities;
 
 namespace Jay.Text;
 
@@ -23,7 +22,7 @@ public ref struct CharSpanReader
         get => _text[index];
     }
 
-    public ReadOnlySpan<char> this[Range range]
+    internal ReadOnlySpan<char> this[Range range]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _text[range];

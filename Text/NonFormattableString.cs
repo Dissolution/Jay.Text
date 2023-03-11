@@ -15,8 +15,8 @@ public readonly struct NonFormattableString : IEquatable<string>
 
     private readonly string? _str;
 
-    public ReadOnlySpan<char> CharSpan => _str.AsSpan();
-    public string Text => _str ?? "";
+    public ReadOnlySpan<char> Text => _str.AsSpan();
+    public string String => _str ?? "";
 
     private NonFormattableString(string? str)
     {

@@ -3,6 +3,16 @@
 internal static class CompatExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Clamp(this int value, int min)
+    {
+        if (value >= min)
+        {
+            return value;
+        }
+        return min;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Clamp(this int value, int min, int max)
     {
 #if NET48 || NETSTANDARD2_0

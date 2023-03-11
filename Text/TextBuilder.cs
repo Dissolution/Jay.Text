@@ -202,7 +202,7 @@ public abstract class TextBuilder<TBuilder> : TextBuffer
     #endregion
 
     #region Format
-    protected void FormatHelper(ReadOnlySpan<char> format, object?[] args)
+    protected void WriteFormatLine(ReadOnlySpan<char> format, object?[] args)
     {
         // Undocumented exclusive limits on the range for Argument Hole Index
         const int IndexLimit = 1_000_000; // Note:            0 <= ArgIndex < IndexLimit
@@ -391,7 +391,7 @@ public abstract class TextBuilder<TBuilder> : TextBuffer
 #if NET6_0_OR_GREATER
     public virtual TBuilder Format(string format, params object?[] args)
     {
-        FormatHelper(format.AsSpan(), args);
+        WriteFormatLine(format.AsSpan(), args);
         return _this;
     }
 
@@ -414,13 +414,13 @@ public abstract class TextBuilder<TBuilder> : TextBuffer
 #else
     public virtual TBuilder Format(NonFormattableString format, params object?[] args)
     {
-        FormatHelper(format.CharSpan, args);
+        WriteFormatLine(format.Text, args);
         return _this;
     }
 
     public virtual TBuilder Format(FormattableString formattableString)
     {
-        FormatHelper(formattableString.Format.AsSpan(), formattableString.GetArguments());
+        WriteFormatLine(formattableString.Format.AsSpan(), formattableString.GetArguments());
         return _this;
     }
 
@@ -650,18 +650,20 @@ public abstract class TextBuilder<TBuilder> : TextBuffer
         if (newTextLen < oldTextLen)
         {
             int writePos = 0;
-            var rangeSplit = written.RangeSplit(oldText, stringComparison: comparison);
-            var e = rangeSplit.GetEnumerator();
-            while (e.MoveNext())
+            var rangeSplit = written.TextSplit(oldText, stringComparison: comparison);
+            var splitList = rangeSplit.ToList();
+            for (var i = 0; i < splitList.Count; i++)
             {
                 // Write the range
-                Range range = e.Current;
+                Range range = splitList.Range(i);
                 (int offset, int length) = range.GetOffsetAndLength(Length);
-                TextHelper.Unsafe.CopyTo(written.Slice(offset, length), written.Slice(writePos), length);
+                TextHelper.Unsafe.CopyTo(
+                    written.Slice(offset, length),
+                    written.Slice(writePos), length);
                 writePos += length;
 
                 // If we're at end, we are done
-                if (e.AtEnd)
+                if (i == (splitList.Count - 1))
                 {
                     Debug.Assert(offset + length == Length);
                     Length = writePos;
@@ -688,18 +690,18 @@ public abstract class TextBuilder<TBuilder> : TextBuffer
             Length = 0;
 
             int writePos = 0;
-            var rangeSplit = buffer.RangeSplit(oldText, stringComparison: comparison);
-            var e = rangeSplit.GetEnumerator();
-            while (e.MoveNext())
+            var rangeSplit = buffer.TextSplit(oldText, stringComparison: comparison);
+            var splitList = rangeSplit.ToList();
+            for (var i = 0; i < splitList.Count; i++)
             {
                 // Write the range
-                Range range = e.Current;
+                Range range = splitList.Range(i);
                 (int offset, int length) = range.GetOffsetAndLength(buffer.Length);
                 this.Write(buffer.Slice(offset, length));
                 writePos += length;
 
                 // If we're at end, we are done
-                if (e.AtEnd)
+                if (i == (splitList.Count-1))
                 {
                     Debug.Assert(offset + length == buffer.Length);
                     //Length = writePos;

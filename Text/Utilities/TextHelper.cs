@@ -16,6 +16,8 @@ public static class TextHelper
     public static readonly string NewLine = Environment.NewLine;
     public static ReadOnlySpan<char> NewLineSpan => NewLine.AsSpan();
 
+    public static readonly int NewLineLength = NewLine.Length;
+
     /// <summary>
     /// The offset between an uppercase ascii letter and its lowercase equivalent
     /// </summary>
@@ -28,7 +30,7 @@ public static class TextHelper
     {
 #if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe void CopyBlock(char* sourcePtr, ref char destPtr, int charCount)
+        private static unsafe void CopyBlock(char* sourcePtr, ref char destPtr, int charCount)
         {
             Emit.Ldarg(nameof(destPtr));
             Emit.Ldarg(nameof(sourcePtr));

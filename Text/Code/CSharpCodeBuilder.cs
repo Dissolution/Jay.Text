@@ -5,7 +5,7 @@ public static class CSharpCodeBuilderExtensions
 {
     public static string DefaultIndent { get; set; } = "    ";
 
-#region Fluent CS File
+    #region Fluent CS File
     /// <summary>
     /// Adds the `// &lt;auto-generated/&gt; ` line, optionally expanding it to include a <paramref name="comment"/>
     /// </summary>
@@ -60,12 +60,25 @@ public static class CSharpCodeBuilderExtensions
         return codeBuilder;
     }
 
-    public static CodeBuilder Namespace(this CodeBuilder codeBuilder, string nameSpace)
+    public static CodeBuilder Namespace(this CodeBuilder codeBuilder, string? nameSpace)
     {
         ReadOnlySpan<char> ns = nameSpace.AsSpan().Trim();
         if (ns.Length == 0)
+        {
+            return codeBuilder;
+        }
+        return codeBuilder.Append("namespace ").Append(ns).AppendLine(';').NewLine();
+    }
+
+    public static CodeBuilder Namespace(this CodeBuilder codeBuilder, string nameSpace,
+        TextBuilderAction<CodeBuilder> namespaceBlock)
+    {
+        ReadOnlySpan<char> ns = nameSpace.AsSpan().Trim();
+        if (ns.Length == 0)
+        {
             throw new ArgumentException("Invalid namespace", nameof(nameSpace));
-        return codeBuilder.Append("namespace ").Append(ns).AppendLine(';');
+        }
+        return codeBuilder.Append("namespace ").AppendLine(ns).BracketBlock(namespaceBlock).NewLine();
     }
 
 
@@ -78,25 +91,26 @@ public static class CSharpCodeBuilderExtensions
          * But we do want to watch out for newline characters to turn
          * this into a multi-line comment */
 
+        var comments = comment.TextSplit(Environment.NewLine)
+            .ToList();
 
-        var e = comment.TextSplit(Environment.NewLine).GetEnumerator();
         // Null or empty comment is blank
-        if (!e.MoveNext())
+        if (comments.Count == 0)
         {
             return codeBuilder.AppendLine("// ");
         }
-        // Only a single comment
-        if (e.AtEnd)
+        // Only a single comment?
+        if (comments.Count == 1)
         {
             // Single line
-            return codeBuilder.Append("// ").AppendLine(e.Current);
+            return codeBuilder.Append("// ").AppendLine(comments.Text(0));
         }
-        
+
         // Multiple comments
-        codeBuilder.Append("/* ").AppendLine(e.Current);
-        while (e.MoveNext())
+        codeBuilder.Append("/* ").AppendLine(comments.Text(0));
+        for (var i = 1; i < comments.Count; i++)
         {
-            codeBuilder.Append(" * ").AppendLine(e.Current);
+            codeBuilder.Append(" * ").AppendLine(comments.Text(i));
         }
         return codeBuilder.AppendLine(" */");
     }
@@ -120,31 +134,32 @@ public static class CSharpCodeBuilderExtensions
         }
         else
         {
-            var e = splitEnumerable.GetEnumerator();
+            var comments = splitEnumerable.ToList();
+
             // Null or empty comment is blank
-            if (!e.MoveNext())
+            if (comments.Count == 0)
             {
                 return codeBuilder.AppendLine("/* */");
             }
-            // Only a single comment
-            if (e.AtEnd)
+            // Only a single comment?
+            if (comments.Count == 1)
             {
                 // Single line
-                return codeBuilder.Append("/* ").Append(e.Current).AppendLine(" */");
+                return codeBuilder.Append("/* ").Append(comments.Text(0)).AppendLine(" */");
             }
-        
+
             // Multiple comments
-            codeBuilder.Append("/* ").AppendLine(e.Current);
-            while (e.MoveNext())
+            codeBuilder.Append("/* ").AppendLine(comments.Text(0));
+            for (var i = 1; i < comments.Count; i++)
             {
-                codeBuilder.Append(" * ").AppendLine(e.Current);
+                codeBuilder.Append(" * ").AppendLine(comments.Text(i));
             }
-            codeBuilder.AppendLine(" */");
+            return codeBuilder.AppendLine(" */");
         }
 
         return codeBuilder;
     }
-#endregion
+    #endregion
 
     public static CodeBuilder IndentBlock(this CodeBuilder codeBuilder, TextBuilderAction<CodeBuilder> indentBlock)
         => codeBuilder.IndentBlock(DefaultIndent, indentBlock);
@@ -154,14 +169,46 @@ public static class CSharpCodeBuilderExtensions
     {
         indent ??= DefaultIndent;
         // Trim all trailing whitespace
-        codeBuilder.TrimEnd()
+        return codeBuilder.TrimEnd()
+            // Start a new line
             .NewLine()
+            // Starting bracket
             .AppendLine('{')
-            .IndentBlock(indent, bracketBlock);
+            // Starts an indented block inside of that bracket
+            .IndentBlock(indent, bracketBlock)
+            // Be sure that we're not putting the end bracket at the end of text
+            .EnsureOnStartOfNewLine()
+            // Ending bracket
+            .Append('}');
+    }
+
+    public static CodeBuilder EnsureOnStartOfNewLine(this CodeBuilder codeBuilder)
+    {
         if (!codeBuilder.Written.EndsWith(codeBuilder._newLineIndent.AsSpan()))
         {
-            codeBuilder.NewLine();
+            return codeBuilder.NewLine();
         }
-        return codeBuilder.Append('}');
+        return codeBuilder;
+    }
+
+    public static CodeBuilder Directive(this CodeBuilder codeBuilder,
+        string directiveName,
+        string? directiveValue,
+        TextBuilderAction<CodeBuilder> directiveBlock,
+        string? endDirective = null)
+    {
+        codeBuilder.Append('#').Append(directiveName);
+        if (!string.IsNullOrEmpty(directiveValue))
+        {
+            codeBuilder.Append(' ').Append(directiveValue);
+        }
+        codeBuilder.NewLine();
+        directiveBlock(codeBuilder);
+        codeBuilder.EnsureOnStartOfNewLine();
+        if (endDirective is null)
+        {
+            endDirective = $"#end{directiveName}";
+        }
+        return codeBuilder.AppendLine(endDirective);
     }
 }

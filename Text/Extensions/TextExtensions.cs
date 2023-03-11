@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+
 using Jay.Text.Utilities;
 
 namespace Jay.Text.Extensions;
@@ -15,33 +16,112 @@ public enum Casing
 
 public static class TextExtensions
 {
+    public static bool StartsWith(this ReadOnlySpan<char> text, char ch)
+    {
+        return text.Length > 0 && text[0] == ch;
+    }
+    public static bool StartsWith(this ReadOnlySpan<char> text, Func<char, bool> predicate)
+    {
+        return text.Length > 0 && predicate(text[0]);
+    }
+
+    public static bool EndsWith(this ReadOnlySpan<char> text, char ch)
+    {
+        return text.Length > 0 && text[^1] == ch;
+    }
+    public static bool EndsWith(this ReadOnlySpan<char> text, Func<char, bool> predicate)
+    {
+        return text.Length > 0 && predicate(text[^1]);
+    }
+
     public static int NextIndexOf(this ReadOnlySpan<char> text, char ch, int startIndex)
     {
         if ((uint)startIndex >= text.Length)
             return -1;
-        var index = text.Slice(startIndex).IndexOf(ch);
-        if (index == -1) return -1;
-        return (index + startIndex);
+        var sliceIndex = text.Slice(startIndex).IndexOf(ch);
+        if (sliceIndex == -1)
+            return -1;
+        return (sliceIndex + startIndex);
     }
-    
-    public static int NextIndexOf(this ReadOnlySpan<char> text, ReadOnlySpan<char> searchText, int startIndex, StringComparison comparison = StringComparison.Ordinal)
+
+    public static int NextIndexOf(
+        this ReadOnlySpan<char> text,
+        ReadOnlySpan<char> searchText,
+        int startIndex,
+        StringComparison comparison = StringComparison.Ordinal
+    )
     {
         if ((uint)startIndex >= text.Length)
             return -1;
-        var index = text.Slice(startIndex).IndexOf(searchText, comparison);
-        if (index == -1) return -1;
-        return (index + startIndex);
+        var sliceIndex = text.Slice(startIndex).IndexOf(searchText, comparison);
+        if (sliceIndex == -1)
+            return -1;
+        return (sliceIndex + startIndex);
     }
 
     public static int NextIndexOf(this Span<char> text, char ch, int startIndex) =>
         NextIndexOf((ReadOnlySpan<char>)text, ch, startIndex);
-    
-    public static int NextIndexOf(this Span<char> text, ReadOnlySpan<char> searchText, int startIndex, StringComparison comparison = StringComparison.Ordinal)
-        => NextIndexOf((ReadOnlySpan<char>)text, searchText, startIndex, comparison);
-    
+
+    public static int NextIndexOf(
+        this Span<char> text,
+        ReadOnlySpan<char> searchText,
+        int startIndex,
+        StringComparison comparison = StringComparison.Ordinal
+    ) => NextIndexOf((ReadOnlySpan<char>)text, searchText, startIndex, comparison);
+
+    public static int PreviousIndexOf(this ReadOnlySpan<char> text, char ch, int startIndex)
+    {
+        if ((uint)startIndex > text.Length)
+            return -1;
+        var sliceLastIndex = text.Slice(0, startIndex).LastIndexOf(ch);
+        if (sliceLastIndex == -1)
+            return -1;
+        return sliceLastIndex;
+    }
+
+    public static int PreviousIndexOf(
+        this ReadOnlySpan<char> text,
+        ReadOnlySpan<char> searchText,
+        int startIndex,
+        StringComparison comparison = StringComparison.Ordinal
+    )
+    {
+        if ((uint)startIndex > text.Length)
+            return -1;
+        int sliceLastIndex;
+#if NET7_0_OR_GREATER
+        sliceLastIndex = text.Slice(0, startIndex).LastIndexOf(searchText, comparison);
+#else
+        if (comparison == StringComparison.Ordinal)
+        {
+            sliceLastIndex = text.Slice(0, startIndex).LastIndexOf(searchText);
+        }
+        else
+        {
+            // Ugh
+            sliceLastIndex = text.ToString()
+                .LastIndexOf(searchText.ToString(), startIndex, comparison);
+        }
+#endif
+        if (sliceLastIndex == -1)
+            return -1;
+        return sliceLastIndex;
+    }
+
+    public static int PreviousIndexOf(this Span<char> text, char ch, int startIndex) =>
+        PreviousIndexOf((ReadOnlySpan<char>)text, ch, startIndex);
+
+    public static int PreviousIndexOf(
+        this Span<char> text,
+        ReadOnlySpan<char> searchText,
+        int startIndex,
+        StringComparison comparison = StringComparison.Ordinal
+    ) => PreviousIndexOf((ReadOnlySpan<char>)text, searchText, startIndex, comparison);
+
     public static string ToCasedString(this string? text, Casing casing)
     {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
         if (casing == Casing.Title)
         {
             return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text);
@@ -52,7 +132,8 @@ public static class TextExtensions
     public static string ToCasedString(this ReadOnlySpan<char> text, Casing casing)
     {
         int textLen = text.Length;
-        if (textLen == 0) return string.Empty;
+        if (textLen == 0)
+            return string.Empty;
         switch (casing)
         {
             case Casing.Lower:
@@ -82,7 +163,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen - 1);
 #endif
                 return buffer.ToString();
             }
@@ -93,7 +174,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen - 1);
 #endif
                 return buffer.ToString();
             }
@@ -110,7 +191,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2), textLen - 1);
 #endif
                 return buffer.ToString();
             }
@@ -121,7 +202,8 @@ public static class TextExtensions
 
     public static string ToCasedString(this string? text, Casing casing, CultureInfo? culture)
     {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
         if (casing == Casing.Title)
         {
             return (culture ?? CultureInfo.CurrentCulture).TextInfo.ToTitleCase(text);
@@ -129,10 +211,15 @@ public static class TextExtensions
         return ToCasedString(text.AsSpan(), casing, culture);
     }
 
-    public static string ToCasedString(this ReadOnlySpan<char> text, Casing casing, CultureInfo? culture)
+    public static string ToCasedString(
+        this ReadOnlySpan<char> text,
+        Casing casing,
+        CultureInfo? culture
+    )
     {
         int textLen = text.Length;
-        if (textLen == 0) return string.Empty;
+        if (textLen == 0)
+            return string.Empty;
         TextInfo textInfo = (culture ?? CultureInfo.CurrentCulture).TextInfo;
         switch (casing)
         {
@@ -163,7 +250,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen - 1);
 #endif
                 return buffer.ToString();
             }
@@ -174,7 +261,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(1));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(1), textLen - 1);
 #endif
                 return buffer.ToString();
             }
@@ -191,7 +278,7 @@ public static class TextExtensions
 #if net48
                 text.Slice(1).CopyTo(buffer.Slice(2));
 #else
-                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2), textLen-1);
+                TextHelper.Unsafe.CopyTo(text.Slice(1), buffer.Slice(2), textLen - 1);
 #endif
                 return buffer.ToString();
             }

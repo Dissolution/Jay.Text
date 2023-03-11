@@ -34,6 +34,7 @@ public class TextCopyBenchmarks
    
 
 
+    /*
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Copy(in char source, ref char dest, int charCount)
     {
@@ -44,6 +45,7 @@ public class TextCopyBenchmarks
         Emit.Shl();
         Emit.Cpblk();
     }
+    */
 
     // Slowest average
     // [Benchmark]

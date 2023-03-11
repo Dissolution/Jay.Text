@@ -3,13 +3,13 @@ using Jay.Text.Utilities;
 
 namespace Jay.Text.Code;
 
-
 // ReSharper disable once InconsistentNaming
 public delegate void CBA(CodeBuilder builder);
 
 public sealed class CodeBuilder : CodeBuilder<CodeBuilder>
 {
-    public CodeBuilder() : base() { }
+    public CodeBuilder()
+        : base() { }
 }
 
 public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
@@ -45,52 +45,22 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
     public override TBuilder Append(ReadOnlySpan<char> text)
     {
         int textLen = text.Length;
-        if (textLen == 0) return _this;
+        if (textLen == 0)
+            return _this;
 
         // We're going to be splitting on NewLine
         ReadOnlySpan<char> newLine = TextHelper.NewLineSpan;
 
-        // Index search
-        int sliceStart = 0;
-        // If @ was used (literal string), there might be a leading newline, clean it up
-        if (text.StartsWith(newLine))
-            sliceStart = newLine.Length;
-
-        // Slice
-        int index = sliceStart;
-        int sliceLen;
-        while (index < textLen)
+        var e = text.TextSplit(newLine).GetEnumerator();
+        if (!e.MoveNext()) return _this;
+        this.Write(e.Current);
+        while (e.MoveNext())
         {
-            index = text.NextIndexOf(newLine, startIndex: index);
-            if (index >= 0)
-            {
-                sliceLen = index - sliceStart;
-                if (sliceLen > 0)
-                {
-                    // Write this chunk
-                    this.Write(text.Slice(sliceStart, sliceLen));
-                    // Write current NewLine
-                    NewLine();
-                }
-
-                // Skip this newline
-                sliceStart = index + newLine.Length;
-                index = sliceStart;
-            }
-            else
-            {
-                break;
-            }
+            // Delimit with NewLine
+            NewLine();
+            // Write this slice
+            this.Write(e.Current);
         }
-
-        // Anything left?
-        sliceLen = textLen - sliceStart;
-        if (sliceLen > 0)
-        {
-            // write it
-            this.Write(text.Slice(sliceStart, sliceLen));
-        }
-
         return _this;
     }
 
@@ -122,10 +92,11 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
                 if (sliceLen > 0)
                 {
                     // Write this chunk
-                    FormatHelper(format.Slice(sliceStart, sliceLen), formatArgs);
-                    // Write current NewLine
-                    NewLine();
+                    WriteFormatLine(format.Slice(sliceStart, sliceLen), formatArgs);
                 }
+
+                // Write current NewLine
+                NewLine();
 
                 // Skip this newline
                 sliceStart = index + newLine.Length;
@@ -142,7 +113,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         if (sliceLen > 0)
         {
             // write it
-            FormatHelper(format.Slice(sliceStart, sliceLen), formatArgs);
+            WriteFormatLine(format.Slice(sliceStart, sliceLen), formatArgs);
         }
 
         return _this;
@@ -154,7 +125,11 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         return Format<T>(value, default);
     }
 
-    public override TBuilder Format<T>([AllowNull] T value, string? format, IFormatProvider? provider = null)
+    public override TBuilder Format<T>(
+        [AllowNull] T value,
+        string? format,
+        IFormatProvider? provider = null
+    )
     {
         switch (value)
         {
@@ -197,7 +172,11 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
             case IEnumerable enumerable:
             {
                 format ??= ",";
-                return Delimit(format, enumerable.Cast<object?>(), static (w, v) => w.Append<object?>(v));
+                return Delimit(
+                    format,
+                    enumerable.Cast<object?>(),
+                    static (w, v) => w.Append<object?>(v)
+                );
             }
             default:
             {
@@ -228,4 +207,38 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         }
         return _this;
     }
+
+    public TBuilder If(
+        bool predicateResult,
+        TextBuilderAction<TBuilder>? ifTrue,
+        TextBuilderAction<TBuilder>? ifFalse = null
+    )
+    {
+        return If(() => predicateResult, ifTrue, ifFalse);
+    }
+
+    public TBuilder If(
+        Func<bool> predicate,
+        TextBuilderAction<TBuilder>? ifTrue,
+        TextBuilderAction<TBuilder>? ifFalse = null
+    )
+    {
+        if (predicate())
+        {
+            ifTrue?.Invoke(_this);
+        }
+        else
+        {
+            ifFalse?.Invoke(_this);
+        }
+        return _this;
+    }
+
+
+
+
+
+
 }
+
+

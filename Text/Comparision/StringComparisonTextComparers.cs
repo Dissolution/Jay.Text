@@ -1,6 +1,4 @@
-﻿using Jay.Text.Utilities;
-
-namespace Jay.Text.Comparision;
+﻿namespace Jay.Text.Comparision;
 
 internal sealed class StringComparisonTextComparers : TextComparers
 {

@@ -27,6 +27,7 @@ public readonly ref struct CharSet
 
     public static CharSet From(string? str) => From(str.AsSpan());
     public static CharSet From(params char[]? chars) => From(chars.AsSpan());
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
     public static CharSet From(ReadOnlySpan<char> span)
     {
         // Allocate for ASCII
@@ -52,6 +53,7 @@ public readonly ref struct CharSet
         return new CharSet(blockArray);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
     public static CharSet From(IEnumerable<char> chars)
     {
         // Allocate for ASCII

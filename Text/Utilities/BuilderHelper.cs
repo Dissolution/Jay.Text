@@ -1,7 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Jay.Text.Compat;
-
-namespace Jay.Text.Utilities;
+﻿namespace Jay.Text.Utilities;
 
 internal static class BuilderHelper
 {
