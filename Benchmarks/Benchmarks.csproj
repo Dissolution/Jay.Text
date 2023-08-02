@@ -5,12 +5,12 @@
     <TargetFrameworks>net7.0</TargetFrameworks>
     <StartupObject></StartupObject>
     <Nullable>enable</Nullable>
-    <LangVersion>11</LangVersion>
-    <AssemblyName>Jay.Text.Benchmarks</AssemblyName>
+    <LangVersion>latest</LangVersion>
     <RootNamespace>Jay.Text.Benchmarks</RootNamespace>
     <ApplicationIcon>..\BlueJay.ico</ApplicationIcon>
     <Company>T.R.Jay</Company>
     <Product>Jay.Text.Benchmarks</Product>
+    <PackageId>Benchmarks</PackageId>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

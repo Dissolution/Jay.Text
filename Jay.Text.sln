@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31702.278
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jay.Text.Benchmarks", "Jay.Text.Benchmarks\Jay.Text.Benchmarks.csproj", "{B12F4785-C786-4619-8105-600D8905174D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{B12F4785-C786-4619-8105-600D8905174D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Text", "Text\Text.csproj", "{A511DAF7-8027-4A8B-B3FF-5F4854ED57D0}"
 EndProject

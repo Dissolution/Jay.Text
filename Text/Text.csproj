@@ -23,10 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\BlueJay.png">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-        </None>
         <None Include="..\README.md">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
