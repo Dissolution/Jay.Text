@@ -73,7 +73,7 @@ public class AlignTests
                     textBuilder.Align(testString, testWidth, alignment);
                     wrote = textBuilder.Written[^testWidth..];
                     var reader = new TextIterator(wrote);
-                    reader.RemainingLength.Should().Be(testWidth);
+                    reader.Available.Should().Be(testWidth);
                     
                     var frontSpaces = reader.TakeWhile(static ch => ch == ' ');
                     
@@ -82,7 +82,7 @@ public class AlignTests
                     text.SequenceEqual(testText).Should().BeTrue();
                     
                     var backSpaces = reader.TakeWhile(static ch => ch == ' ');
-                    reader.RemainingLength.Should().Be(0);
+                    reader.Available.Should().Be(0);
                     
                     (frontSpaces.Length + backSpaces.Length).Should().Be(spaces);
                     

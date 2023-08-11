@@ -30,6 +30,17 @@ public ref struct TextSplitEnumerator
         SplitOptions = splitEnumerable.SplitOptions;
         StringComparison = splitEnumerable.StringComparison;
     }
+    public TextSplitEnumerator(
+        ReadOnlySpan<char> inputText, 
+        ReadOnlySpan<char> separator, 
+        TextSplitOptions splitOptions = TextSplitOptions.None, 
+        StringComparison stringComparison = StringComparison.Ordinal)
+    {
+        InputText = inputText;
+        Separator = separator;
+        SplitOptions = splitOptions;
+        StringComparison = stringComparison;
+    }
 
     /// <inheritdoc cref="IEnumerator"/>
     public bool MoveNext()

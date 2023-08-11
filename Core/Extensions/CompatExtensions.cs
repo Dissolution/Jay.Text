@@ -47,6 +47,13 @@ internal static class CompatExtensions
         (int offset, int length) = range.GetOffsetAndLength(array?.Length ?? 0);
         return array.AsSpan(offset, length);
     }
+
+    public static HashSet<T> ToHashSet<T>(this T[]? array)
+    {
+        if (array is null)
+            return new HashSet<T>();
+        return new HashSet<T>(array);
+    }
 #endif
 
 #if NET48 || NETSTANDARD2_0 || NETSTANDARD2_1

@@ -10,7 +10,6 @@ public class FluentIndentTextBuilder<TBuilder>
 {
     protected Stack<string> _indents;
     
-    
     public FluentIndentTextBuilder() : base()
     {
         _indents = new(0);
@@ -46,18 +45,8 @@ public class FluentIndentTextBuilder<TBuilder>
     public override void Write(string? str)
     {
         if (string.IsNullOrEmpty(str)) return;
-
-        int start = 0;
-        int index = 0;
-        while ((index = str!.IndexOf(_newline, index, StringComparison.Ordinal)) >= 0)
-        {
-            
-        }
-        // no more found
-        
-
         // We're going to be splitting on NewLine
-        var e = str.TextSplit(_newline).GetEnumerator();
+        var e = new TextSplitEnumerator(str.AsSpan(), _newline.AsSpan());
         if (!e.MoveNext()) return;
         this.Write(e.Current);
         while (e.MoveNext())
@@ -75,7 +64,7 @@ public class FluentIndentTextBuilder<TBuilder>
         if (textLen == 0) return;
 
         // We're going to be splitting on NewLine
-        var e = text.TextSplit(_newline).GetEnumerator();
+        var e = new TextSplitEnumerator(text, _newline.AsSpan());
         if (!e.MoveNext()) return;
         this.Write(e.Current);
         while (e.MoveNext())

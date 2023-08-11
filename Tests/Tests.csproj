@@ -5,9 +5,11 @@
         <LangVersion>latest</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        
         <AssemblyName>Jay.Text.Tests</AssemblyName>
         <RootNamespace>Jay.Text.Tests</RootNamespace>
+                
         <ApplicationIcon>..\BlueJay.ico</ApplicationIcon>
     </PropertyGroup>
 

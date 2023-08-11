@@ -7,25 +7,25 @@
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-        <ApplicationIcon>Documentation\BlueJay.ico</ApplicationIcon>
-        
+                
         <AssemblyName>Jay.Text</AssemblyName>
         <RootNamespace>Jay.Text</RootNamespace>
         <Version>0.1.0</Version>
-        <Authors>T. R. Jay</Authors>
-        <PackageIcon>Documentation\BlueJay.png</PackageIcon>
-        <Company>T. R. Jay</Company>
+        <Authors>TimothyJay</Authors>
+
+        <ApplicationIcon>..\BlueJay.ico</ApplicationIcon>
+        <PackageIcon>..\BlueJay.png</PackageIcon>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Fody" Version="6.6.4">
+        <PackageReference Include="Fody" Version="6.8.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="InlineIL.Fody" Version="1.7.4">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="PolySharp" Version="1.12.1">
+        <PackageReference Include="PolySharp" Version="1.13.2">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PolySharpUsePublicAccessibilityForGeneratedTypes>true</PolySharpUsePublicAccessibilityForGeneratedTypes>

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using static InlineIL.IL;
+// ReSharper disable FieldCanBeMadeReadOnly.Local
+#pragma warning disable CS0414 // Field is assigned but its value is never used
 
 
 
-namespace Benchmarks;
+namespace Jay.Text.Benchmarks;
 //https://benchmarkdotnet.org/articles/features/parameterization.html
 
 public class TextCopyBenchmarks

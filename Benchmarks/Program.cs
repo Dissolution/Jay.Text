@@ -1,8 +1,22 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Environments;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using Jay.Text.Benchmarks;
+
+var config = DefaultConfig.Instance
+    .AddJob(Job
+        .ShortRun
+        .WithRuntime(ClrRuntime.Net48)
+        .WithRuntime(CoreRuntime.Core20)
+        .WithRuntime(CoreRuntime.Core21)
+        .WithRuntime(CoreRuntime.Core31)
+        .WithRuntime(CoreRuntime.Core60)
+        .WithRuntime(CoreRuntime.Core70));
+
 
 // var config = DefaultConfig.Instance
 //     .AddJob(Job.Default.WithRuntime(CoreRuntime.Core60))
@@ -12,10 +26,11 @@ using Jay.Text.Benchmarks;
 //     .FromAssembly(Assembly.GetExecutingAssembly())
 //     .Run(args, config);
 
-var sum = BenchmarkRunner.Run<CopyBenchmarks>();
-OpenSummary(sum);
+var sum = BenchmarkRunner.Run<EqualsBenchmarks>(config);
+openSummary(sum);
+return;
 
-static void OpenSummary(Summary summary)
+static void openSummary(Summary summary)
 {
     string path = Path.Combine(summary.ResultsDirectoryPath);
     Process.Start(new ProcessStartInfo
