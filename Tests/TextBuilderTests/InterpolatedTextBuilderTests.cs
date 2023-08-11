@@ -15,5 +15,16 @@ public class InterpolatedTextBuilderTests
         text.Length.Should().Be(0);
         text.Append($"{DateTime.Now:s}");
         text.Length.Should().Be(19);
+
+        text.Clear();
+        text.Length.Should().Be(0);
+        TBA<TextBuilder> tba = DoThing;
+        text.Append($"HEY {tba} YA!");
+        text.Length.Should().Be(11);
+    }
+
+    protected static void DoThing(TextBuilder textBuilder)
+    {
+        textBuilder.Write("ABC");
     }
 }

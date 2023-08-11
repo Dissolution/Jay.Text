@@ -1,4 +1,4 @@
-﻿using Jay.Text.Utilities;
+﻿using Jay.Text.Splitting;
 
 namespace Jay.Text.Tests;
 
@@ -56,8 +56,22 @@ public class SplitTests
         input ??= "";
         separator ??= "";
 
-        string[] stringSplit = input.Split(separator, (StringSplitOptions)splitOptions);
-        var stringSplitEnumerator = ((IEnumerable<string>)stringSplit)
+        #if !NET6_0_OR_GREATER
+        if ((int)splitOptions >= 2) return;
+        #endif
+        
+#if NETSTANDARD2_0 || NET48
+
+
+        string[] stringSplit = input.Split(
+            new string[1]{separator}, 
+            (StringSplitOptions)splitOptions);
+#else
+        string[] stringSplit = input.Split(
+            separator, 
+            (StringSplitOptions)splitOptions);
+#endif
+        using var stringSplitEnumerator = ((IEnumerable<string>)stringSplit)
             .GetEnumerator();
 
         // Now our implementation
@@ -73,7 +87,7 @@ public class SplitTests
         var textSplitEnumerator = textSplitter.GetEnumerator();
 
         // For debugging
-        var testSplitStrings = textSplitter.ListStrings();
+        //var testSplitStrings = textSplitter.ListStrings();
 
         // They have to stay in sync
         while (true)
@@ -87,14 +101,15 @@ public class SplitTests
             if (eTextMoved == false || eStringMoved == false) return;
 
             // Their values have to be exactly the same
-            string stringSplitString = stringSplitEnumerator.Current;
+            stringSplitEnumerator.Current.Should().NotBeNull();
+            string stringSplitString = stringSplitEnumerator.Current!;
             string textSplitString = textSplitEnumerator.String;
             textSplitString.Should().Be(stringSplitString);
             if (stringSplitString != textSplitString) return;
 
             // The range has to be the correct range
             Range textSplitRange = textSplitEnumerator.Range;
-            textSplitString = input[textSplitRange].ToString();
+            textSplitString = input[textSplitRange];
             textSplitString.Should().Be(stringSplitString);
         }
     }

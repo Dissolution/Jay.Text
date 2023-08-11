@@ -16,20 +16,20 @@ public class AlignTests
         textBuilder[2].Should().Be('d');
 
         textBuilder.Align('e', 2, Alignment.Left);
-        textBuilder.TakeLast(2).Should().BeEquivalentTo("e ");
+        textBuilder[^2..].ToString().Should().BeEquivalentTo("e ");
         textBuilder.Align('f', 2, Alignment.Right);
-        textBuilder.TakeLast(2).Should().BeEquivalentTo(" f");
+        textBuilder[^2..].ToString().Should().BeEquivalentTo(" f");
         textBuilder.Align('g', 2, Alignment.Center);
-        textBuilder.TakeLast(2).Should().BeEquivalentTo("g ");
+        textBuilder[^2..].ToString().Should().BeEquivalentTo("g ");
         textBuilder.Align('h', 2, Alignment.Center | Alignment.Right);
-        textBuilder.TakeLast(2).Should().BeEquivalentTo(" h");
+        textBuilder[^2..].ToString().Should().BeEquivalentTo(" h");
         
         textBuilder.Align('i', 3, Alignment.Left);
-        textBuilder.TakeLast(3).Should().BeEquivalentTo("i  ");
+        textBuilder[^3..].ToString().Should().BeEquivalentTo("i  ");
         textBuilder.Align('j', 3, Alignment.Right);
-        textBuilder.TakeLast(3).Should().BeEquivalentTo("  j");
+        textBuilder[^3..].ToString().Should().BeEquivalentTo("  j");
         textBuilder.Align('k', 3, Alignment.Center);
-        textBuilder.TakeLast(3).Should().BeEquivalentTo(" k ");
+        textBuilder[^3..].ToString().Should().BeEquivalentTo(" k ");
     }
 
     [Fact]
@@ -72,8 +72,8 @@ public class AlignTests
                 {
                     textBuilder.Align(testString, testWidth, alignment);
                     wrote = textBuilder.Written[^testWidth..];
-                    var reader = new CharSpanReader(wrote);
-                    reader.Length.Should().Be(testWidth);
+                    var reader = new TextIterator(wrote);
+                    reader.RemainingLength.Should().Be(testWidth);
                     
                     var frontSpaces = reader.TakeWhile(static ch => ch == ' ');
                     
@@ -82,7 +82,7 @@ public class AlignTests
                     text.SequenceEqual(testText).Should().BeTrue();
                     
                     var backSpaces = reader.TakeWhile(static ch => ch == ' ');
-                    reader.EndOfText.Should().BeTrue();
+                    reader.RemainingLength.Should().Be(0);
                     
                     (frontSpaces.Length + backSpaces.Length).Should().Be(spaces);
                     

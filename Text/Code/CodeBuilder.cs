@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Jay.Text.Utilities;
 
 namespace Jay.Text.Code;
 
@@ -44,81 +43,10 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
 
     public override TBuilder Append(ReadOnlySpan<char> text)
     {
-        int textLen = text.Length;
-        if (textLen == 0)
-            return _this;
-
-        // We're going to be splitting on NewLine
-        ReadOnlySpan<char> newLine = TextHelper.NewLineSpan;
-
-        var e = text.TextSplit(newLine).GetEnumerator();
-        if (!e.MoveNext()) return _this;
-        this.Write(e.Current);
-        while (e.MoveNext())
-        {
-            // Delimit with NewLine
-            NewLine();
-            // Write this slice
-            this.Write(e.Current);
-        }
-        return _this;
+      
     }
 
-#if !NET6_0_OR_GREATER
-    public override TBuilder Format(FormattableString text)
-    {
-        ReadOnlySpan<char> format = text.Format.AsSpan();
-        int formatLen = format.Length;
-        object?[] formatArgs = text.GetArguments();
 
-        // We're going to be splitting on NewLine
-        ReadOnlySpan<char> newLine = TextHelper.NewLineSpan;
-
-        // Index search
-        int sliceStart = 0;
-        // If @ was used (literal string), there might be a leading newline, clean it up
-        if (format.StartsWith(newLine))
-            sliceStart = newLine.Length;
-
-        // Slice
-        int index = sliceStart;
-        int sliceLen;
-        while (index < formatLen)
-        {
-            index = format.NextIndexOf(newLine, startIndex: index);
-            if (index >= 0)
-            {
-                sliceLen = index - sliceStart;
-                if (sliceLen > 0)
-                {
-                    // Write this chunk
-                    WriteFormatLine(format.Slice(sliceStart, sliceLen), formatArgs);
-                }
-
-                // Write current NewLine
-                NewLine();
-
-                // Skip this newline
-                sliceStart = index + newLine.Length;
-                index = sliceStart;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        // Anything left?
-        sliceLen = formatLen - sliceStart;
-        if (sliceLen > 0)
-        {
-            // write it
-            WriteFormatLine(format.Slice(sliceStart, sliceLen), formatArgs);
-        }
-
-        return _this;
-    }
-#endif
 
     public override TBuilder Append<T>([AllowNull] T value)
     {
@@ -208,31 +136,7 @@ public abstract class CodeBuilder<TBuilder> : TextBuilder<TBuilder>
         return _this;
     }
 
-    public TBuilder If(
-        bool predicateResult,
-        TextBuilderAction<TBuilder>? ifTrue,
-        TextBuilderAction<TBuilder>? ifFalse = null
-    )
-    {
-        return If(() => predicateResult, ifTrue, ifFalse);
-    }
 
-    public TBuilder If(
-        Func<bool> predicate,
-        TextBuilderAction<TBuilder>? ifTrue,
-        TextBuilderAction<TBuilder>? ifFalse = null
-    )
-    {
-        if (predicate())
-        {
-            ifTrue?.Invoke(_this);
-        }
-        else
-        {
-            ifFalse?.Invoke(_this);
-        }
-        return _this;
-    }
 
 
 

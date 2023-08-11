@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Jay.Text.Sandbox</AssemblyName>
+        <RootNamespace>Jay.Text.Sandbox</RootNamespace>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Fody" Version="6.8.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="InlineIL.Fody" Version="1.7.4" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+      <PackageReference Include="xunit" Version="2.5.0" />
+    </ItemGroup>
+
+</Project>

@@ -1,20 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net7.0;net6.0;netstandard2.1;netstandard2.0;net48</TargetFrameworks>
+        <!-- netstandard2.0 is for source generators -->
+        <TargetFrameworks>net6.0;net7.0;netcoreapp3.1;netstandard2.1;netstandard2.0;net48</TargetFrameworks>
+        <LangVersion>latest</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <ApplicationIcon>Documentation\BlueJay.ico</ApplicationIcon>
+        
         <AssemblyName>Jay.Text</AssemblyName>
         <RootNamespace>Jay.Text</RootNamespace>
-        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-        <LangVersion>11</LangVersion>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Title>Jay.Text</Title>
-        <Authors>T.R.Jay</Authors>
-        <Description>Text Library</Description>
-        <Company>T.R.Jay</Company>
-        <ApplicationIcon>BlueJay.ico</ApplicationIcon>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.1.0</Version>
+        <Authors>T. R. Jay</Authors>
+        <PackageIcon>Documentation\BlueJay.png</PackageIcon>
+        <Company>T. R. Jay</Company>
     </PropertyGroup>
 
     <ItemGroup>
@@ -53,5 +53,13 @@
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
             <_Parameter1>Jay.Text.Tests</_Parameter1>
         </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\README.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+        <Link>Documentation\README.md</Link>
+      </None>
     </ItemGroup>
 </Project>
